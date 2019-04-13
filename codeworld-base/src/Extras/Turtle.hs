@@ -13,7 +13,7 @@ module Extras.Turtle
 where
 
 import Prelude
-import Extras(rotatedPoint,slideshow,(<$>),run,foreach,forloop)
+import Extras(slideshow,(<$>),run,foreach,forloop)
 import qualified Extras as E
 
 repeat = E.repeats

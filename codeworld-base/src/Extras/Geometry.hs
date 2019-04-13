@@ -5,7 +5,8 @@
 
 module Extras.Geometry where
 
-import Prelude hiding(Maybe(..))
+import Prelude
+import Extras.Op
 import GHC.Base(Maybe(..))
 import qualified Data.List as D
 
@@ -26,13 +27,13 @@ coordSize = 10.0
 
 plus_pt = pictures [ hline, vline ]
     where
-    hline = path [(-dot_radius,0),(dot_radius,0)]
-    vline = path [(0,-dot_radius),(0,dot_radius)]
+    hline = polyline [(-dot_radius,0),(dot_radius,0)]
+    vline = polyline [(0,-dot_radius),(0,dot_radius)]
 
 eks_pt = pictures [ lline, rline ]
     where
-    lline = path [(-dot_radius,-dot_radius),(dot_radius,dot_radius)]
-    rline = path [(dot_radius,-dot_radius),(-dot_radius,dot_radius)]
+    lline = polyline [(-dot_radius,-dot_radius),(dot_radius,dot_radius)]
+    rline = polyline [(dot_radius,-dot_radius),(-dot_radius,dot_radius)]
 
 star_pt = plus_pt & eks_pt
 
@@ -63,14 +64,14 @@ drawLineWith liner (p,q)
               | otherwise = [(low,line_gety l low),(high,line_gety l high)]
 
 drawLine :: (Point,Point) -> Picture
-drawLine = drawLineWith path
+drawLine = drawLineWith polyline
 
 drawSegment :: (Point,Point) -> Picture
-drawSegment(a,b) = path[a,b]
+drawSegment(a,b) = polyline[a,b]
 
 drawRay (p,q) = drawLineWith liner (p,q)
     where
-    liner l = path [p,margin]
+    liner l = polyline [p,margin]
         where
         Just margin = find (beyond (p,q)) l
 
@@ -129,7 +130,7 @@ outside (a,b) x = beyond (a,b) x || beyond (b,a) x
 
 -- between (a,b) x tells whether x is between a and b
 between :: (Point,Point) -> Point -> Bool
-between ab = not . outside ab
+between ab = not .< outside ab
 
 sameside :: Point -> (Point,Point) -> Point -> Bool
 sameside x (y,y') x' | not a_yy' = error "sameside"
@@ -140,7 +141,7 @@ sameside x (y,y') x' | not a_yy' = error "sameside"
     where a_yy' = apart y y'
           a_xx' = apart x x'
 
-across x l = not . sameside x l
+across x l = not .< sameside x l
           
 -- [find p pts] returns the first point among [pts] that has property [p]
 find = D.find
@@ -274,7 +275,7 @@ type Circle = (Point,Point)
 phase :: Point -> Number
 phase (x,y) | y >= 0 = rawphase
             | otherwise = rawphase + 360.0
-    where rawphase = atan2(y,x)
+    where rawphase = vectorDirection(x,y)
 
 -- Measure of angle ABC (vertex is in the middle)
 angle :: Point -> Point -> Point -> Number

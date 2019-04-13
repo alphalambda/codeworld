@@ -12,17 +12,16 @@
 module Extras( slideshow, autoSlideshow, randomSlideshow, randomAutoSlideshow
              , randomAnimationOf, randomDrawingOf, stepDrawingOf, zoomableDrawingOf, clickableInterface
              , between, beyond, saw
-             , bezierPoints, bezierLoopPoints
-             , rotatedPoint, scaledPoint, translatedPoint, midpoint
+             , bezierPoints, bezierLoopPoints, midpoint
              , rgb, withAlpha, rText, lText, rJustified, lJustified, formatting, textHash, precedes
              , approximated, messages
              , printedNumbers, printedDecimals, printedPrice, printedPair, overlays, underlays
              , alphabeticalSortedOn, numericalSortedOn, alphabeticalGroupBy, numericalGroupBy
              , map, filter, (<|), (|>), (<$>), (<?>), (<|>), (<&>)
              , run, repeat, repeats, repeatWhile, repeatsWhile, foreach, forloop, iterated
-             , prepend, append, list, listn, pairs, unpairs, groups, inGroupsOf, unzipped, zipped
+             , prepend, append, list, listn, pairs, unpairs, inGroupsOf, unzipped, zipped
              , cumsum
-	     , indexOf, find
+             , indexOf, find
              ) where
 
 import Prelude
@@ -30,7 +29,7 @@ import qualified Data.List as L
 import Internal.Text(fromCWText,toCWText)
 import Extras.Op
 import qualified "base" Prelude as P
-import           "base" Prelude (map,filter,fst,snd,tail,scanl)
+import           "base" Prelude (map,filter,fst,snd,tail,scanl,Maybe(..))
 
 -------------------------------------------------------------------------------
 --- Top Level
@@ -65,8 +64,8 @@ randomSlideshow(mkslides) = interactionOf(initial,update,handle,render)
           | time - tlast > 2 = blank
           | otherwise = translated(mark,-9.5,-9.5)
                 
-      mark = scaled(text(printed(current)),0.5,0.5)
-           & colored(solidRectangle(1,1),grey(0.9))
+      mark = scaled(lettering(printed(current)),0.5,0.5)
+           & colored(solidRectangle(1,1),RGB(0.9,0.9,0.9))
            
     handle(ss,event) = mayHandleEvent(ss)
       where
@@ -79,7 +78,7 @@ randomSlideshow(mkslides) = interactionOf(initial,update,handle,render)
           KeyPress "P" -> c-1
           KeyPress "PageUp" -> c-1
           KeyPress "Backspace" -> c-1
-          MousePress _ -> c+1
+          PointerPress _ -> c+1
           other -> c
         
       handlePan(c,s) = case event of
@@ -103,10 +102,7 @@ randomSlideshow(mkslides) = interactionOf(initial,update,handle,render)
                             | i <- [1..]
                             ]
 
-      mayHandleEvent(ss) = case event of
-          MousePress(RightButton,_) -> ss
-          MouseRelease(RightButton,_) -> ss
-          other -> wrap(handleEvent(ss))
+      mayHandleEvent(ss) = wrap(handleEvent(ss))
           
       handleEvent(ss@SS{..}) = ss
           { current = nextCurrent
@@ -177,7 +173,7 @@ randomAnimationOf(movie) = interactionOf(initial,update,handle,draw)
 
     update((rs,t,seed),dt) = (rs,t+dt,seed)
 
-    handle((rs,t,seed),MousePress(LeftButton,_)) = (newrs,t,newseed)
+    handle((rs,t,seed),PointerPress(_)) = (newrs,t,newseed)
         where
         newseed:newrs = randomNumbers(seed)
     handle(model,_) = model
@@ -189,7 +185,7 @@ randomDrawingOf(makeDrawing) = interactionOf(initial,update,handle,draw)
     where
     initial rs = rs
     update(model,_) = model
-    handle(r:rs,MousePress(LeftButton,_)) = rs
+    handle(r:rs,PointerPress(_)) = rs
     handle(model,_) = model
     draw(r:_) = makeDrawing(randomNumbers(r))
 
@@ -208,9 +204,9 @@ zoomableDrawingOf(foreground,background) = interactionOf(init,update,handle,draw
     draw((cx,cy,s),_) = scaled(translated(foreground,cx,cy),s,s) & background
 
     handle((state,anchor),KeyPress k) = (handleKey k state,anchor)
-    handle((state,_),MousePress(LeftButton,(x,y))) = (state,Just(x,y))
-    handle(((cx,cy,s),Just(x,y)),MouseMovement(mx,my)) = ((cx+(mx-x)/s,cy+(my-y)/s,s),Just(mx,my))
-    handle(((cx,cy,s),Just(x,y)),MouseRelease(LeftButton,(mx,my))) = ((cx+(mx-x)/s,cy+(my-y)/s,s),Nothing)
+    handle((state,_),PointerPress(x,y)) = (state,Just(x,y))
+    handle(((cx,cy,s),Just(x,y)),PointerMovement(mx,my)) = ((cx+(mx-x)/s,cy+(my-y)/s,s),Just(mx,my))
+    handle(((cx,cy,s),Just(x,y)),PointerRelease(mx,my)) = ((cx+(mx-x)/s,cy+(my-y)/s,s),Nothing)
     handle(state,_) = state
 
     handleKey "Up" (cx,cy,s) = (cx,cy+1,s)
@@ -239,7 +235,7 @@ clickableInterface :: ([Number] -> state, (Number,Number,state) -> state, state 
 clickableInterface(setup,handle,draw) = interactionOf(setup,update,process,draw)
   where
   update(state,dt) = state
-  process(state,MousePress(LeftButton,(x,y))) = handle(x,y,state)
+  process(state,PointerPress(x,y)) = handle(x,y,state)
   process(state,other) = state
 
 -------------------------------------------------------------------------------
@@ -320,6 +316,7 @@ bezierLoopPoints = bezierLoopPointsF
 --- Points
 -------------------------------------------------------------------------------
 
+{-
 rotatedPoint :: (Point,Number) -> Point
 rotatedPoint = rotatedVector
 
@@ -328,6 +325,7 @@ scaledPoint((x,y),sx,sy) = (x*sx,y*sy)
 
 translatedPoint :: (Point,Number,Number) -> Point
 translatedPoint((x,y),tx,ty) = (x+tx,y+ty)
+-}
 
 midpoint((x0,y0),(x1,y1)) = (0.5*(x0+x1),0.5*(y0+y1))
 
@@ -402,8 +400,8 @@ formatting = (format,spc,lit,txt,dec)
 lText :: (Text,Number) -> Picture
 lText(txt,width)
   | len < width = lText(txt <> " ",width)
-  | len > width = styledText(cut,Monospace,Plain)
-  | otherwise = styledText(txt,Monospace,Plain)
+  | len > width = styledLettering(cut,Monospace,Plain)
+  | otherwise = styledLettering(txt,Monospace,Plain)
   where
   len = numberOfCharacters(txt)
   cut = joined(first(characters(txt),width))
@@ -423,8 +421,8 @@ lJustified(txt,width)
 rText :: (Text,Number) -> Picture
 rText(txt,width)
   | len < width = rText(" " <> txt,width)
-  | len > width = styledText(cut,Monospace,Plain)
-  | otherwise = styledText(txt,Monospace,Plain)
+  | len > width = styledLettering(cut,Monospace,Plain)
+  | otherwise = styledLettering(txt,Monospace,Plain)
   where
   len = numberOfCharacters(txt)
   cut = joined(last(characters(txt),width))
@@ -476,7 +474,7 @@ approximated(x,eps) = eps * rounded (x / eps)
 -- > cumsum([1,2,3,4]) -- > [1,1+2,1+2+3,1+2+3+4]
 --
 cumsum :: [Number] -> [Number]
-cumsum = tail . scanl (+) 0
+cumsum = tail .< scanl (+) 0
 
 -- | Formats a Number, so that it always shows the given number of decimals
 printedDecimals :: (Number,Number) -> Text
@@ -512,7 +510,7 @@ messages(lines) = pictures([showline(i) | i <- [1..n]])
     n = length(lines)
     showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),0,10.25-0.5*i)
     -- Output should be 40 rows and 66 columns
-    fmt(txt) = styledText(lJustified(txt,66),Monospace,Italic)
+    fmt(txt) = styledLettering(lJustified(txt,66),Monospace,Italic)
 
 printedNumbers :: [Number] -> Text
 printedNumbers(list) = "[" <> printedRawNumbers(list) <> "]"
@@ -548,7 +546,7 @@ numericalSortedOn = L.sortOn
 -- if @value(element1)@ precedes @value(element2)@ alphabetically
 -- then @element1@ will apear before @element2@
 alphabeticalSortedOn :: (a -> Text) -> [a] -> [a]
-alphabeticalSortedOn get = L.sortOn (fromCWText . get)
+alphabeticalSortedOn get = L.sortOn (fromCWText .< get)
 
 -- |@numericalGroupBy(value)(list)@ breaks up the given @list@ into sublists
 -- of equal @value@. It creates a list @(v1,elements1),(v2,elements2)...@ so that all the
@@ -556,7 +554,7 @@ alphabeticalSortedOn get = L.sortOn (fromCWText . get)
 -- have value @v2@ and so on. Note that @value@ is a function, so the
 -- value of an element @x@ is given by @value(x)@.
 numericalGroupBy :: (a -> Number) -> [a] -> [(Number,[a])]
-numericalGroupBy get = groupBy . numericalSortedOn fst . map build
+numericalGroupBy get = groupBy .< numericalSortedOn fst .< map build
     where
     build x = (get x,x)
 
@@ -566,7 +564,7 @@ numericalGroupBy get = groupBy . numericalSortedOn fst . map build
 -- have value @v2@ and so on. Note that @value@ is a function, so the
 -- value of an element @x@ is given by @value(x)@.
 alphabeticalGroupBy :: (a -> Text) -> [a] -> [(Text,[a])]
-alphabeticalGroupBy get = groupBy . alphabeticalSortedOn fst . map build
+alphabeticalGroupBy get = groupBy .< alphabeticalSortedOn fst .< map build
     where
     build x = (get x,x)
 
@@ -580,7 +578,7 @@ groupBy :: [(a,b)] -> [(a,[b])]
 groupBy [] = []
 groupBy ((x,d):xds) = (x,d:ds) : groupBy xds_ne
     where
-    (xds_eq,xds_ne) = L.span ((x ==) . fst) xds
+    (xds_eq,xds_ne) = L.span ((x ==) .< fst) xds
     ds = map snd xds_eq
 
 -------------------------------------------------------------------------------
@@ -661,10 +659,12 @@ unpairs :: [(a,a)] -> [a]
 unpairs [] = []
 unpairs ((x,y):xys) = x : y : unpairs xys
     
+{-
 -- | Converts a list of elements into a list of lists of the given length
 groups :: ([a],Number) -> [[a]]
 groups([],_) = []
 groups(rs,n) = first(rs,n) : groups(rest(rs,n),n)
+-}
 
 -- | Converts a list of elements into a list of lists of the given length
 inGroupsOf :: Number -> [a] -> [[a]]

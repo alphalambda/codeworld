@@ -29,4 +29,4 @@ inventory = blank
   & translated(labels(tangramR,[-1,-1,1,1]) & solidBlock(tangramR,red),-8,-6)
   & translated(minitext("1 tangramR"),-8,-9)
   where
-  minitext(t) = dilated(text(t),1/2)
+  minitext(t) = dilated(lettering(t),1/2)
