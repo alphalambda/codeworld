@@ -18,7 +18,21 @@ Description:
 Library
   Hs-source-dirs:      src
   Js-sources:          jsbits/deep_eq.js
-  Exposed-modules:     Prelude
+  Exposed-modules:     Prelude,
+                       Extras.SimUL1,
+                       Extras.Turtle,
+                       Extras.Lessons,
+                       Extras.Animation,
+                       Extras.Game,
+                       Extras.Geometry,
+                       Extras.SnapBlock,
+                       Extras.Do,
+                       Extras.SnapBlock.Tangram,
+                       Extras.Game.Hanoi,
+                       Extras.Op,
+                       Extras.Dataframe.Counties,
+                       Extras.Dataframe.EnglishWords,
+                       Extras
   Other-modules:       Internal.Exports,
                        Internal.Num,
                        Internal.Prelude,
@@ -41,3 +55,4 @@ Library
                        text,
                        time
   Exposed:             False
+
