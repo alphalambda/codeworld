@@ -1,13 +1,16 @@
 {-# LANGUAGE RebindableSyntax  #-}
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports #-}
+{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE ParallelListComp #-}
 
 module Extras.SimUL1
        (Params(..), motionParams, motionOf)
 where
 
-import Prelude
+import Prelude hiding (text)
+import           "base" Prelude (Maybe(..))
 
 -------------------------------------------------------------------------------
 --- Code for starting the program
@@ -207,13 +210,13 @@ make_sim(simrow,x_min,x_max,landmarks,parts) =
     dx = (x_max-x_min)/parts
     
     render_mark(m) =
-      translated(path[(0,0.2),(0,-0.2)],screen_coords(x_min+m*dx),0)
+      translated(polyline[(0,0.2),(0,-0.2)],screen_coords(x_min+m*dx),0)
       
     render_line =
       let
         origin = screen_coords(x_min)
         destin = screen_coords(x_max)
-        simline = path [(-10,0),(10,0)]
+        simline = polyline [(-10,0),(10,0)]
                 & pictures[render_mark(m) | m <- [0..parts]]
       in
         blank
@@ -288,7 +291,7 @@ make_chart(ct,cx,ylabel,t_max,x_min,x_max) =
       in
         colored(translated(chart,ct,cx),black)
 
-    render_graph(pts,color) = colored(path[screen_coords p | p <- pts],color)
+    render_graph(pts,color) = colored(polyline[screen_coords p | p <- pts],color)
 
     within_graph (t,x) = abs(t-ct) < halfsize && abs(x-cx) < halfsize
     
@@ -372,7 +375,7 @@ render_data(name,position,velocity,row) = blank
 
 handle(model,event) =
     case event of
-      MousePress(LeftButton,p) -> click_on(p)
+      PointerPress(p) -> click_on(p)
       _ -> model
     where
     click_on(p) | within_graph(pchart') (p) =
@@ -402,6 +405,8 @@ handle(model,event) =
 -------------------------------------------------------------------------------
 -- Helper functions
 -------------------------------------------------------------------------------
+
+text = lettering
 
 -- using_simtime(upd,stime)(model,dtime) = upd(model,stime)
 

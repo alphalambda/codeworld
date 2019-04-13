@@ -13,7 +13,6 @@ module Extras.SnapBlock
 where
 
 import Prelude
-import Extras(rotatedPoint,translatedPoint)
 
 newtype SnapBlock = SnapBlock [Point]
 
@@ -40,7 +39,7 @@ labels(SnapBlock(pts),offs) = solidCircle(0.1) & pictures(ls)
        | o <- offs
        | i <- [1..]
        ]
-  lbl(i) = dilated(text(printed(i)),3/4)
+  lbl(i) = dilated(lettering(printed(i)),3/4)
 
 snapped :: (Picture,SnapBlock,Number) -> Picture
 snapped(pic,SnapBlock(pts),loc) = translated(pic,tx,ty)

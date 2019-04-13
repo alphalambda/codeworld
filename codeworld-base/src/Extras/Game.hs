@@ -35,8 +35,8 @@ gameLoop :: ( [Number] -> state
             , Context state -> Picture
             ) -> Program
 gameLoop(init,update,handle,draw) = do
-  now   <- Do.now
-  today <- Do.today
+  now   <- Extras.Do.now
+  today <- Extras.Do.today
   interactionOf(init'(today,now),update',handle',draw')
     where
     init'(today,now)(r:rs) = Context

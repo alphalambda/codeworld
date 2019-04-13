@@ -173,7 +173,7 @@ input (model,_) = model
 draw(Model{..})
   | numPegs > 18 = drawMany(Model{..})
   | numPegs > 6 = drawInfos(Model{..})
-  | otherwise = pegPics & translated(text(printed(total)),-8,9)
+  | otherwise = pegPics & translated(lettering(printed(total)),-8,9)
   where
   pegPics = pictures[translated(drawPeg i s numDiscs,x,y)
                       | i <- [1..]
@@ -182,7 +182,7 @@ draw(Model{..})
                       , x <- [-5,0,5]
                       ]
 
-drawMany(Model{..}) = translated(text(printed(total)<>" moves"),0,9.5)
+drawMany(Model{..}) = translated(lettering(printed(total)<>" moves"),0,9.5)
   & pictures([bar(i,count(p)) | i <- [1..] | p <- pegs])
     where
     bar(i,n) = translated(solidRectangle(w,rh),(i-0.5)*w-10,rh/2-10)
@@ -216,8 +216,8 @@ drawPeg n (num,discs) numDiscs =
           ]
   & thickPolyline([(-2,-0.2),(2,-0.2)],0.2)
   & thickPolyline([(0,-0.2),(0,totalheight)],0.2)
-  & translated(text("Peg " <> (printed n)),0,-1)
-  & translated(dilated(text(printed(num)),0.75),0,-1.9)
+  & translated(lettering("Peg " <> (printed n)),0,-1)
+  & translated(dilated(lettering(printed(num)),0.75),0,-1.9)
   where
   width = 3.5 / numDiscs
   height = totalheight/(numDiscs+1)

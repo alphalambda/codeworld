@@ -65,16 +65,16 @@ f <| x = f(x)
 infixr 1 <|
 
 -- | Function composition, where data flows from left to right
-(>>) :: (a -> b) -> (b -> c) -> (a -> c)
-(f >> g)(x) = g(f(x))
+(.>) :: (a -> b) -> (b -> c) -> (a -> c)
+(f .> g)(x) = g(f(x))
 
-infixl 1 >>
+infixl 1 .>
 
 -- | Function composition, where data flows from right to left
-(<<) :: (b -> c) -> (a -> b) -> (a -> c)
-(f << g)(x) = f(g(x))
+(.<) :: (b -> c) -> (a -> b) -> (a -> c)
+(f .< g)(x) = f(g(x))
 
-infixl 1 <<
+infixl 1 .<
 
 -- | Unicode version of the function application operator (flowing right to left)
 (⇐) = (<|)
