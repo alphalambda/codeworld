@@ -445,7 +445,7 @@ function registerStandardHints(successFunc) {
             }
 
             // Filter out strictness annotations.
-            line = line.replace(/(\s)!([A-Za-z([])/g, '$1$2');
+            line = line.replace((() => /(\s)!([A-Za-z([])/g)(), '$1$2');
 
             // Filter out CallStack constraints.
             line = line.replace(/:: HasCallStack =>/g, '::');
