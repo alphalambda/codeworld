@@ -282,13 +282,14 @@ install_codemirror() {
     run $BUILD            git clone http://github.com/codemirror/CodeMirror.git
     run $BUILD/CodeMirror git checkout tags/5.43.0
     run $BUILD/CodeMirror npm install
+    run $BUILD/CodeMirror npm install -s uglify-js git+http://github.com/angelozerr/CodeMirror-Extension.git
     #run $BUILD/CodeMirror npm install -s uglify-js git+ssh://git@github.com:angelozerr/CodeMirror-Extension.git
-    run $BUILD            git clone http://github.com/angelozerr/CodeMirror-Extension.git
-    run $BUILD/CodeMirror-Extension npm install -s uglify-js
 }
 
 delete_downloads() {
-    mv $BUILD/downloads $REMOVED
+    if [ -d $BUILD/downloads ]; then
+	mv $BUILD/downloads $REMOVED
+    fi
     #run $BUILD  rm -rf downloads
 }
 
