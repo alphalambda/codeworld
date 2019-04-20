@@ -234,7 +234,7 @@ function renderDeclaration(decl, keyword, keywordData, maxLen, argIndex = -1) {
     wordElem.appendChild(document.createTextNode(keyword));
     decl.appendChild(wordElem);
 
-    let leftover = "";
+    let leftover = '';
     if (keywordData.symbolEnd < keywordData.declaration.length) {
         leftover = keywordData.declaration.slice(keywordData.symbolEnd).replace(
             /\s+/g, ' ');
@@ -245,13 +245,15 @@ function renderDeclaration(decl, keyword, keywordData, maxLen, argIndex = -1) {
         }
     }
     if (argIndex >= 0) {
-        const [head, args, tail] = (/^(\s*::\s*[(]*)([\w,\s]*)([)]*\s*->.*)$/).exec(leftover).slice(1);
+        //TODO: use a more sophisticated parser to fetch arguments, and remove unnecessary subsequent checks.
+        const parsedFunction = (/^(\s*::\s*[(]*)([\w,\s]*)([)]*\s*->.*)$/).exec(leftover);
+        if (!parsedFunction || parsedFunction.length <= 1) return null;
+        const [head, args, tail] = parsedFunction.slice(1);
         let tokens = args.split(",");
         argIndex = Math.min(argIndex, tokens.length - 1);
         tokens[argIndex] = `<strong>${tokens[argIndex]}</strong>`;
         leftover = `${head}${tokens.join(',')}${tail}`;
     }
-
 
     if (leftover.length) {
         const argElem = document.createElement('span');

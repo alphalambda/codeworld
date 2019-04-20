@@ -18,10 +18,6 @@ set -euo pipefail
 
 source base.sh
 
-REMOVED=removed
-
-mkdir -p $REMOVED
-
 remove_old_build() {
     rm -rf $BUILD ~/.ghc ~/.ghcjs ~/.cabal ~/.npm
 
@@ -225,8 +221,7 @@ install_ghc() {
     run $BUILD/ghc-$GHC_VERSION  ./configure --prefix=$BUILD
     run $BUILD/ghc-$GHC_VERSION  make install
 
-    mv $BUILD/ghc-$GHC_VERSION $REMOVED-upstream
-    #run $BUILD                   rm -rf ghc-$GHC_VERSION
+    run $BUILD                   rm -rf ghc-$GHC_VERSION
     
     # Now install the patched GHC, built from source.
     
@@ -238,8 +233,7 @@ install_ghc() {
     run $BUILD/ghc-$GHC_VERSION  make
     run $BUILD/ghc-$GHC_VERSION  make install
 
-    mv $BUILD/ghc-$GHC_VERSION $REMOVED/ghc-$GHC_VERSION-patched
-    #run $BUILD                   rm -rf ghc-$GHC_VERSION
+    run $BUILD                   rm -rf ghc-$GHC_VERSION
 }
 
 install_cabal_install() {    
@@ -250,8 +244,7 @@ install_cabal_install() {
     EXTRA_CONFIGURE_OPTS="" run $BUILD/cabal-install-2.0.0.0 ./bootstrap.sh
     run .                              cabal update
 
-    mv $BUILD/cabal-install-2.0.0.0 $REMOVED
-    #run $BUILD                         rm -rf cabal-install-2.0.0.0
+    run $BUILD                         rm -rf cabal-install-2.0.0.0
 }
 
 install_happy_alex() {
@@ -265,14 +258,8 @@ install_ghcjs() {
 
     run $BUILD  git clone --branch ghc-8.0 --single-branch http://github.com/ghcjs/ghcjs
     run $BUILD  cabal_install ./ghcjs
-    rm -rf $REMOVED/ghcjs
-    mv $BUILD/ghcjs $REMOVED
-    # run $BUILD  rm -rf ghcjs
+    run $BUILD  rm -rf ghcjs
     run . ghcjs-boot --dev --ghcjs-boot-dev-branch ghc-8.0 --shims-dev-branch ghc-8.0 --no-prof --no-haddock
-}
-
-backup_removed() {
-    mkdir -p removed
 }
 
 install_codemirror() {
@@ -287,13 +274,11 @@ install_codemirror() {
 }
 
 delete_downloads() {
-    if [ -d $BUILD/downloads ]; then
-	mv $BUILD/downloads $REMOVED
-    fi
-    #run $BUILD  rm -rf downloads
+    run $BUILD  rm -rf downloads
 }
 
-# remove_old_build
+#remove_old_build
+#exit 0
 
 if [ ! -f $BUILD/.install_packages ]; then
     install_packages
