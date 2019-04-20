@@ -1,7 +1,6 @@
 build/
 data
 log/
-removed/
 dist
 *.o
 *.js_o
