@@ -18,7 +18,8 @@ cwd=$(pwd)
 
 source base.sh
 
-run .  cabal update
+echo "Not running cabal update"
+# run .  cabal update
 
 # Install the codeworld-base and codeworld-api packages
 
