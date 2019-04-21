@@ -23,5 +23,6 @@ fuser -k -n tcp 9160
 
 mkdir -p log
 
+echo "Running LSU version"
 codeworld-game-server +RTS -T &
 run .  codeworld-server -p 8080 --no-access-log
