@@ -164,7 +164,7 @@ function initCodeworld() {
             'Ctrl-Up': changeFontSize(1),
             'Ctrl-Down': changeFontSize(-1)
         },
-        textHover: window.buildMode == 'codeworld' ? onHover : null,
+        // textHover: window.buildMode == 'codeworld' ? onHover : null,
         gutters: ['CodeMirror-lint-markers'],
         lint: {
             getAnnotations: (text, callback) => {
@@ -323,6 +323,8 @@ function initCodeworld() {
     });
     window.codeworldEditor.refresh();
     window.codeworldEditor.on('cursorActivity', () => {
+        return;
+
         if (window.buildMode !== 'codeworld') {
             return;
         }
