@@ -30,8 +30,8 @@ Library
                        Extras.SnapBlock.Tangram,
                        Extras.Game.Hanoi,
                        Extras.Op,
-                       Extras.Dataframe.Counties,
-                       Extras.Dataframe.EnglishWords,
+                       -- Extras.Dataframe.Counties,
+                       -- Extras.Dataframe.EnglishWords,
                        Extras
   Other-modules:       Internal.Exports,
                        Internal.Num,
