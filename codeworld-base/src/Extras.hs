@@ -12,7 +12,7 @@
 module Extras( slideshow, autoSlideshow, randomSlideshow, randomAutoSlideshow
              , randomAnimationOf, randomDrawingOf, stepDrawingOf, zoomableDrawingOf, clickableInterface
              , between, beyond, saw
-             , bezierPoints, bezierLoopPoints, midpoint
+             , closedCurvePoints, openCurvePoints, midpoint
              , rgb, withAlpha, rText, lText, rJustified, lJustified, formatting, textHash, precedes
              , approximated, messages
              , printedNumbers, printedDecimals, printedPrice, printedPair, overlays, underlays
@@ -269,48 +269,86 @@ saw(t,p) = 1 - abs(2*abs(remainder(t,p))/p - 1)
 -- Bezier interpolation 
 ------------------------------------------------------------------------------
 
-bezierPoints :: ([Point],Number) -> [Point]
-bezierPoints = bezierPointsF
+-- | @openCurvePoints(controls,distance)@ is a list of points that approximate
+-- a curve passing through the given @controls@. A variable number of points
+-- is generated in such a way that the distance between them is approximately
+-- the given @distance@.
+openCurvePoints :: ([Point],Number) -> [Point]
 
-bezierLoopPoints :: ([Point],Number) -> [Point]
-bezierLoopPoints = bezierLoopPointsF
+-- | This function is similar to @curvePoints@, but the points approximate
+-- a closed curve passing through the given controls.
+closedCurvePoints :: ([Point],Number) -> [Point]
 
-(bezierPointsF,bezierLoopPointsF) = (bezierPoints',bezierLoopPoints')
+(openCurvePoints,closedCurvePoints) = (ocp,ccp)
+  where
+  -- 1D Linear interpolation
+  lerp1(a,b,t) = (1-t)*a + t*b
+
+  -- 2D Linear interpolation
+  lerp2((x0,y0),(x1,y1),t) = (lerp1(x0,x1,t),lerp1(y0,y1,t))
+
+  -- 2D Quadratic interpolation
+  qerp2(p0,p1,p2,t) = lerp2(lerp2(p0,p1,t),lerp2(p1,p2,t),t)
+
+  -- 2D Cubic interpolation
+  cerp2(p0,p1,p2,p3,t) = lerp2(qerp2(p0,p1,p2,t),qerp2(p1,p2,p3,t),t)
+
+  -- initial interpolation (p1,p2)
+  bezierFirst(p1,p2,p3,grain) =
+    let
+    c = vectorSum(p2,scaledVector(vectorDifference(p1,p3),r/2))
+    r = d12 / (d12 + d23)
+    d12 = dist(p1,p2)
+    d23 = dist(p2,p3)
+    l = 1 - grain / d12
+    in
+    [ qerp2(p1,c,p2,t) | t <- [0,grain..l] ]
+
+  -- final interpolation (p2,p3)
+  bezierLast(p1,p2,p3,grain) =
+    let
+    c = vectorSum(p2,scaledVector(vectorDifference(p3,p1),r/2))
+    r = d23 / (d12 + d23)
+    d12 = dist(p1,p2)
+    d23 = dist(p2,p3)
+    l = 1 - grain / d23
+    in
+    [ qerp2(p2,c,p3,t) | t <- [0,grain..l] ]
+
+  -- middle interpolation (p2,p3)
+  bezierMiddle(p1,p2,p3,p4,grain) =
+    let
+    c1 = vectorSum(p2,scaledVector(vectorDifference(p3,p1),r1/2))
+    c2 = vectorSum(p3,scaledVector(vectorDifference(p2,p4),r2/2))
+    r1 = d23 / (d12 + d23)
+    r2 = d23 / (d23 + d34)
+    d12 = dist(p1,p2)
+    d23 = dist(p2,p3)
+    d34 = dist(p3,p4)
+    l = 1 - grain / d23
+    in
+    [ cerp2(p2,c1,c2,p3,t) | t <- [0,grain..l] ]
+
+
+  ccp([],_) = []
+  ccp([p1],_) = []
+  ccp([p1,p2],_) = [p1,p2]
+  ccp(ps,grain) = go(last(ps,1) ++ ps ++ first(ps,2))
     where
-    bezier2(controls,givenGrain) = bezier2loop(controls)
-      where
-      bezier2loop(controls)
-        | length(controls) < 3 = []
-        | otherwise =
-          let
-            [p0,p1,p2] = first(controls,3)
-            points = [ qerp2(midpoint(p0,p1),p1,midpoint(p1,p2),t) | t <- [0,grain..1] ]
-            controls' = rest(controls,1)
-          in
-            points ++ bezier2loop(controls')
+    go(p1:p2:p3:p4:more) = bezierMiddle(p1,p2,p3,p4,grain) ++ go(p2:p3:p4:more)
+    go(_) = []
 
-      -- 1D Linear interpolation
-      lerp1(a,b,t) = (1-t)*a + t*b
+  ocp([],_) = []
+  ocp([p1],_) = []
+  ocp([p1,p2],_) = [p1,p2]
+  ocp(p1:p2:p3:more,grain) = bezierFirst(p1,p2,p3,grain) ++ go(p1:p2:p3:more)
+    where
+    go(p1:p2:p3:p4:more) = bezierMiddle(p1,p2,p3,p4,grain) ++ go(p2:p3:p4:more)
+    go([p1,p2,p3]) = bezierLast(p1,p2,p3,grain)
+    go(_) = []
 
-      -- 2D Linear interpolation
-      lerp2((x0,y0),(x1,y1),t) = (lerp1(x0,x1,t),lerp1(y0,y1,t))
+  dist(p,q) = vectorLength(vectorDifference(p,q))
 
-      -- 2D Quadratic interpolation
-      qerp2(p0,p1,p2,t) = lerp2(lerp2(p0,p1,t),lerp2(p1,p2,t),t)
-
-      -- Default grain size
-      grain = if givenGrain <= 0 then 0.01 else givenGrain
-
-    bezierPoints'(points,grain) =
-      let
-        [b0,b1] = first(points,2)
-        b01 = midpoint(b0,b1)
-        [e0,e1] = last(points,2)
-        e01 = midpoint(e0,e1)
-      in
-        [b0,b01] ++ bezier2(points,grain) ++ [e01,e1]
-
-    bezierLoopPoints'(pts,grain) = bezier2(pts ++ first(pts,2),grain)
 
 -------------------------------------------------------------------------------
 --- Points
