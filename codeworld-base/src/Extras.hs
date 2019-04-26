@@ -12,7 +12,7 @@
 module Extras( slideshow, autoSlideshow, randomSlideshow, randomAutoSlideshow
              , randomAnimationOf, randomDrawingOf, stepDrawingOf, zoomableDrawingOf, clickableInterface
              , between, beyond, saw
-             , closedCurvePoints, openCurvePoints, midpoint
+             , closedCurvePoints, openCurvePoints, midpoint, grid
              , rgb, withAlpha, rText, lText, rJustified, lJustified, formatting, textHash, precedes
              , approximated, messages
              , printedNumbers, printedDecimals, printedPrice, printedPair, overlays, underlays
@@ -499,6 +499,41 @@ textHash(s) = go h0 (characters s)
     lower = "abcdefghijklmnopqrstuvxyz"
     upper = uppercase(lower)
     other = " .,'!@#$%^&*()-=_+|/<>\\"
+
+
+-------------------------------------------------------------------------------
+--- Grid
+-------------------------------------------------------------------------------
+
+-- | A @grid(pic,rows,columns)@ is a grid with the given number of @rows@ and
+-- @columns@, where the rows are numbered top to bottom (top row is row 1)
+-- and the columns are numbered left to right (leftmost column is column 1).
+-- The user needs to specify what to draw at each cell in the grid. The given
+-- function @pic@ should specify a 20 by 20 picture for each row and column,
+-- 
+-- > pic(row,col) = fullSizePicture
+--
+-- Each full size picture will be scaled to fit within the cell.
+-- Example:
+--
+-- > picture = grid(pic,10,10)
+-- >     where
+-- >     pic(row,col) = dilated(lettering(coord),5)
+-- >                  & rectangle(19,19)
+-- >         where
+-- >         coord = joined(["(",printed(row),",",printed(col),")"])
+--
+-- The example above will show the row index and the column index for each cell
+grid :: ((Number,Number) -> Picture,Number,Number) -> Picture
+grid(pic,rows,cols) = translated(pictures(rpic),-10,10)
+  where
+  w = 20/cols
+  h = 20/rows
+  transform(row,col) = translated(base,w*(col-1/2),-h*(row-1/2))
+    where
+    base = scaled(pic(row,col),1/cols,1/rows)
+  rpic = [ transform(row,col) | row <- [1..rows], col <- [1..cols] ]
+
 
 -------------------------------------------------------------------------------
 --- Utility Functions
