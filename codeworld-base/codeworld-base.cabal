@@ -30,6 +30,7 @@ Library
                        Extras.SnapBlock.Tangram,
                        Extras.Game.Hanoi,
                        Extras.Op,
+                       Extras.Widget,
                        -- Extras.Dataframe.Counties,
                        -- Extras.Dataframe.EnglishWords,
                        Extras
