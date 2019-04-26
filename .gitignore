@@ -10,6 +10,7 @@ dist
 *.swp
 nohup.out
 web/closure-library
+web/devel
 third_party/closure-library
 testcase-output
 /codeworld-auth.txt
