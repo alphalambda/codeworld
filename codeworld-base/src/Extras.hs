@@ -261,7 +261,7 @@ beyond(t,start,drawing) =
 -- when @t=0@, increases up to 1 when @t=p/2@, and then decreases back to 0 when @t=p@.
 -- This increasing and decreasing when @t@ goes from @0@ to @p@ is called an oscillation
 -- of period @p@. The oscillations will keep repeating, so that the function is @0@ when
--- @t@ is @0,p,2p,3p,4p,5p,...@ and it is 1 when @t@ is @p/2,3p/2,5p/2,7p/2,...@
+-- @t@ is @0,p,2p,3p,4p,5p,...@ and it is 1 when @t@ is @p/2@,@3p/2@,@5p/2@,@7p/2@,...
 saw :: (Number,Number) -> Number
 saw(t,p) = 1 - abs(2*abs(remainder(t,p))/p - 1)
 
