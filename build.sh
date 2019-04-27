@@ -21,6 +21,10 @@ source base.sh
 echo "Not running cabal update"
 # run .  cabal update
 
+if [ "x$1" = "x-d" ]; then
+    rm -rf data/base/* data/codeworld/build/*
+fi
+
 # Install the codeworld-base and codeworld-api packages
 
 run .  cabal_install --ghcjs ./codeworld-prediction \
