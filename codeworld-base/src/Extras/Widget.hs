@@ -3,28 +3,32 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ParallelListComp #-}
+{-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE RecordWildCards #-}
 
 -- | A very simple Graphical User Interface (GUI) for user interaction with
 -- buttons, checkboxes, sliders and a few others.
-module Extras.Widget( guiDrawingOf, guiActivityOf
-                    -- * Widgets
-                    , Widget
-                    , toggle, button, slider, randomBox, timer, counter
-                    -- * Convenience functions
-                    , withConversion, setConversion
-                    -- * Examples
-                    , widgetExample1, widgetExample2, widgetExample3
-                    , widgetExample4
-                    )
-where
+module Extras.Widget(
+    -- $intro
+    guiDrawingOf, guiActivityOf
+    -- * Widgets
+    , Widget, toggle, button, slider, randomBox, timer, counter
+    -- * Convenience functions
+    , withConversion, setConversion
+    -- * Examples
+    , widgetExample1, widgetExample2, widgetExample3, widgetExample4
+    ) where
 
 import Prelude
 
-
 --------------------------------------------------------------------------------
--- Widget API
---------------------------------------------------------------------------------
+-- $intro
+-- = Widget API
+--
+-- To use the extra features in this module, you must begin your code with this
+-- line:
+--
+-- > import Extras.Widget
 
 -- | The function @guiDrawingOf@ is an entry point for drawing that allows
 -- access to a simple GUI. It needs two arguments: a list of
