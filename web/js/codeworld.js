@@ -316,63 +316,14 @@ function initCodeworld() {
         {
             class: 'cw-toolbar-button mdi mdi-auto-fix',
             label: '',
-            title: 'Run',
+            title: 'Autocomplete',
             callback: cm => cm.execCommand('autocomplete')
         },
         ]
     });
     window.codeworldEditor.refresh();
-    window.codeworldEditor.on('cursorActivity', () => {
-        return;
-
-        if (window.buildMode !== 'codeworld') {
-            return;
-        }
-
-        const prevDiv = document.getElementById('function-details');
-        if (prevDiv) prevDiv.remove();
-
-        const cursor = window.codeworldEditor.getCursor();
-        const currentToken = window.codeworldEditor.getTokenAt(cursor);
-        const functions = currentToken.state.contexts.filter(ctx => ctx.functionName);
-
-        if (!functions.length) return;
-
-        const {
-            functionName,
-            argIndex,
-            column
-        } = functions.pop();
-        const keywordData = window.codeWorldSymbols[functionName];
-
-        // don't show tooltip if function details or argument types are not known
-        if (!keywordData || keywordData.declaration === functionName) return;
-
-        const topDiv = document.createElement('div');
-
-        topDiv.title = functionName;
-        topDiv.id = 'function-details';
-
-        const docDiv = document.createElement('div');
-        docDiv.classList.add('function-tooltip-styling');
-
-        const annotation = document.createElement('div');
-        const returnedVal = renderDeclaration(annotation, functionName, keywordData, 9999, argIndex);
-        //TODO: Remove the if block once a better function parser is integrated.
-        if (returnedVal === null) {
-            annotation.remove();
-            topDiv.remove();
-            return;
-        }
-        annotation.className = 'hover-decl';
-        docDiv.appendChild(annotation);
-
-        topDiv.appendChild(docDiv);
-        window.codeworldEditor.addWidget({
-            line: cursor.line,
-            ch: column - functionName.length
-        }, topDiv, true, 'above', 'near');
-    });
+    // window.codeworldEditor.on('cursorActivity', updateArgHelp);
+    // window.codeworldEditor.on('refresh', updateArgHelp);
 
     CodeMirror.commands.save = cm => {
         saveProject();
@@ -411,6 +362,56 @@ function initCodeworld() {
             window.codeworldEditor.setSize();
         }, 1000);
     };
+}
+
+function updateArgHelp() {
+    if (window.buildMode !== 'codeworld') {
+        return;
+    }
+
+    const prevDiv = document.getElementById('function-details');
+    if (prevDiv) prevDiv.remove();
+
+    const cursor = window.codeworldEditor.getCursor();
+    const currentToken = window.codeworldEditor.getTokenAt(cursor);
+    const functions = currentToken.state.contexts.filter(ctx => ctx.functionName);
+
+    if (!functions.length) return;
+
+    const {
+        functionName,
+        argIndex,
+        column
+    } = functions.pop();
+    const keywordData = window.codeWorldSymbols[functionName];
+
+    // don't show tooltip if function details or argument types are not known
+    if (!keywordData || keywordData.declaration === functionName) return;
+
+    const topDiv = document.createElement('div');
+
+    topDiv.title = functionName;
+    topDiv.id = 'function-details';
+
+    const docDiv = document.createElement('div');
+    docDiv.classList.add('function-tooltip-styling');
+
+    const annotation = document.createElement('div');
+    const returnedVal = renderDeclaration(annotation, functionName, keywordData, 9999, argIndex);
+    //TODO: Remove the if block once a better function parser is integrated.
+    if (returnedVal === null) {
+        annotation.remove();
+        topDiv.remove();
+        return;
+    }
+    annotation.className = 'hover-decl';
+    docDiv.appendChild(annotation);
+
+    topDiv.appendChild(docDiv);
+    window.codeworldEditor.addWidget({
+        line: cursor.line,
+        ch: column - functionName.length,
+    }, topDiv, false, 'above', 'near');
 }
 
 class CanvasRecorder {
@@ -791,6 +792,16 @@ function moveHere() {
     });
 }
 
+function toggleTheme() {
+    let root = document.getElementsByClassName('root')[0];
+    root.classList.toggle('dark-theme');
+    if (root.classList.contains('dark-theme')){
+        window.codeworldEditor.setOption('theme', 'ambiance');
+    } else {
+        window.codeworldEditor.setOption('theme', 'default');
+    }    
+  }
+
 function changeFontSize(incr) {
     return () => {
         const elem = window.codeworldEditor.getWrapperElement();
@@ -811,12 +822,18 @@ function changeFontSize(incr) {
 }
 
 function help() {
-    const url = `doc.html?shelf=help/${window.buildMode}.shelf`;
+    let url = `doc.html?shelf=help/${window.buildMode}.shelf`;
+    let root = document.getElementsByClassName('root')[0];
+    let customClass = 'helpdoc';
+    if (root.classList.contains('dark-theme')) {
+        url += '&theme=dark-theme';
+        customClass += ' dark-theme';
+    }
 
     sweetAlert({
         html: `<iframe id="doc" style="width: 100%; height: 100%" class="dropbox" src="${ 
             url}"></iframe>`,
-        customClass: 'helpdoc',
+        customClass: customClass,
         allowEscapeKey: true,
         allowOutsideClick: true,
         showConfirmButton: false,
