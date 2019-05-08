@@ -14,9 +14,10 @@ module Extras.Widget(
     -- * Widgets
     , Widget, toggle, button, slider, randomBox, timer, counter
     -- * Convenience functions
-    , withConversion, setConversion
+    , withConversion, setConversion, ReactorFun, withUpdate, setUpdate
     -- * Examples
     , widgetExample1, widgetExample2, widgetExample3, widgetExample4
+    , widgetExample5, widgetExample6
     ) where
 
 import Prelude
@@ -29,6 +30,10 @@ import Prelude
 -- line:
 --
 -- > import Extras.Widget
+
+--------------------------------------------------------------------------------
+-- Entry Points
+--------------------------------------------------------------------------------
 
 -- | The function @guiDrawingOf@ is an entry point for drawing that allows
 -- access to a simple GUI. It needs two arguments: a list of
@@ -67,7 +72,7 @@ guiDrawingOf(widgetsUser,drawUser) = activityOf(initAll,updateAll,drawAll)
   where
   initAll(rs) = initRandom(widgetsUser,rs)
 
-  updateAll(ws,event) = ws.$updateWidget(event)
+  updateAll(ws,event) = ws.$updateWidget(event).#react
 
   drawAll(ws) = pictures(ws.$drawWidget) & drawUser(ws.$value)
 
@@ -125,19 +130,31 @@ guiActivityOf(widgetsUser,initUser,updateUser,drawUser) =
   updateAll((widgets,state),event) =
     (newWidgets,updateUser(widgets.$value,state,event))
     where
-    newWidgets = widgets.$updateWidget(event)
+    newWidgets = widgets.$updateWidget(event).#react
     
   drawAll(widgets,state) =
     pictures(widgets.$drawWidget) & drawUser(widgets.$value,state)
 
-initRandom(ws,rs) = [ t(w,r) | w <- ws | r <- rs ]
-  where
-  t(w,r) | isRandom(w) = let rp = randomNumbers(r)
-                         in w { value_ = rp#1, randomPool = rest(rp,1) }
-         | otherwise   = w
+--------------------------------------------------------------------------------
+-- Widget API
+--------------------------------------------------------------------------------
 
-isRandom(Widget{widget = Random}) = True
-isRandom(_                      ) = False
+-- | The internal structure of a @Widget@ is not exposed in the user interface. You
+-- have access only to the current value of each widget.
+data Widget = Widget
+  { selected :: Truth
+  , highlight :: Truth
+  , width :: Number
+  , height :: Number
+  , centerAt :: (Number,Number)
+  , label :: Text
+  , conversion :: Number -> Number
+  , reactor :: ReactorType
+  , value_ :: Number
+  , oldval :: Number
+  , widget :: WidgetType
+  , randomPool :: [Number]
+  }
 
 -- | A button placed at the given location. While
 -- the button is pressed, the value produced is 0.5,
@@ -201,6 +218,12 @@ timer(p) = (newWidget(p)) { widget = Timer }
 -- to it, the example above will make the new slider produce values
 -- between -10 and 10, while the old slider will still produce values
 -- between 0 and 1
+--
+-- When there is no reactor function associated to the widget, the conversion
+-- function can be arbitrary. However, when a reactor function is also used,
+-- the conversion function is expected to be either strictly increasing
+-- or strictly decreasing. Otherwise, the widget may or may not work properly
+-- when the values are updated by the reactor function.
 withConversion :: (Number -> Number, Widget) -> Widget
 withConversion(conv,w) = w { conversion = conv }
 
@@ -208,6 +231,64 @@ withConversion(conv,w) = w { conversion = conv }
 -- for the arguments.
 setConversion :: (Number -> Number) -> Widget -> Widget
 setConversion(conv)(w) = w { conversion = conv }
+
+-- | A reactor function is used to update the values of a widget automatically.
+-- The function is called every time the value of any widget changes, and
+-- the values of all the widgets before and after that change are accessible.
+--
+-- Example. Assume you have defined two widgets: a timer and a slider, in that
+-- order, where the slider is used to control the position of an object. Then,
+-- adding the following reactor function to the slider would make it update
+-- automatically:
+--
+-- > setBallPosition(old,new)
+-- >     | old#1 < new#1 = new#2 + 0.1 -- when time increases, move the object
+-- >     | otherwise     = new#2       -- otherwise,do not change the position
+--
+-- A full example of use is shown in the documentation for @withUpdate@
+type ReactorFun = ([Number],[Number]) -> Number
+
+-- | Add a reactor function to a widget.
+--
+-- Example:
+--
+-- > program = guiDrawingOf(widgets,draw)
+-- >   where
+-- >   widgets =
+-- >       [ withUpdate( setBallPy
+-- >                   , withConversion( \v -> -10+20*v
+-- >                                   , slider("ballPy",-8,9)))
+-- >       , withUpdate( setBallVy
+-- >                   , withConversion( \v -> -20*v + 10
+-- >                                   , slider("ballVy",-8,7)))
+-- >       , timer("time",-8,5)
+-- >       , withConversion(\v -> 0.1 + 4.9*v, slider("radius",-8,3))
+-- >       ]
+-- > 
+-- >   draw(v) = translated(colored(solidCircle(v#radius),red),0,v#ballPy)
+-- > 
+-- >   [ballPy,ballVy,time,radius] = [1..length(widgets)]
+-- > 
+-- >   setBallPy(old,new)
+-- >     | old#time < new#time = new#ballPy + new#ballVy * (new#time - old#time)
+-- >     | otherwise = new#ballPy
+-- >   
+-- >   setBallVy(old,new)
+-- >     | new#ballPy + new#radius >=  10 = -abs(new#ballVy)
+-- >     | new#ballPy - new#radius <= -10 =  abs(new#ballVy)
+-- >     | otherwise                      =  new#ballVy
+--
+withUpdate :: (ReactorFun, Widget) -> Widget
+withUpdate(rfun,w) = w { reactor = React(rfun) }
+
+-- | Same functionality as @withUpdate@, but using a different convention
+-- for the arguments.
+setUpdate :: ReactorFun -> Widget -> Widget
+setUpdate(rfun)(w) = w { reactor = React(rfun) }
+
+--------------------------------------------------------------------------------
+-- Examples
+--------------------------------------------------------------------------------
 
 -- | This is the example shown in the documentation for @guiDrawingOf@
 widgetExample1 :: Program
@@ -303,34 +384,91 @@ widgetExample4 = guiDrawingOf(widgets,draw)
 
   saw(t,p) = 1 - abs(2*abs(remainder(t,p))/p - 1)
 
+-- | This is the example shown in the documentation for @withUpdate@
+widgetExample5 :: Program
+widgetExample5 = guiDrawingOf(widgets,draw)
+  where
+  widgets = [ withUpdate(setBallPy,
+                withConversion(\v -> -10+20*v,
+                  slider("ballPy",-8,9)))
+            , withUpdate(setBallVy,
+                withConversion(\v -> -20*v + 10,
+                  slider("ballVy",-8,7)))
+            , timer("time",-8,5)
+            , withConversion(\v -> 0.1 + 4.9*v, slider("radius",-8,3))
+            ]
+
+  draw(v) = translated(colored(solidCircle(v#radius),red),0,v#ballPy)
+
+  [ballPy,ballVy,time,radius] = [1..length(widgets)]
+
+  setBallPy(old,new)
+    | old#time < new#time = new#ballPy + new#ballVy * (new#time - old#time)
+    | otherwise = new#ballPy
+  
+  setBallVy(old,new)
+    | new#ballPy + new#radius >=  10 = -abs(new#ballVy)
+    | new#ballPy - new#radius <= -10 =  abs(new#ballVy)
+    | otherwise                      =  new#ballVy
+
+-- | This example shows two sets of sliders for selecting colors
+-- according to either RGB or HSL values. Each set is kept in sync with each
+-- other.
+widgetExample6 :: Program
+widgetExample6 = guiDrawingOf(widgets,draw)
+  where
+  widgets = [ withUpdate(setRGB(r), slider("R",-8,9))
+            , withUpdate(setRGB(g), slider("G",-8,7))
+            , withUpdate(setRGB(b), slider("B",-8,5))
+            , withUpdate(setHSL(h), withConversion((360 *), slider("H",-8,3)))
+            , withUpdate(setHSL(s), slider("S",-8,1))
+            , withUpdate(setHSL(l), slider("L",-8,-1))
+            ]
+
+  draw(v) = colored(solidRectangle(10,10),RGB(v#r,v#g,v#b))
+
+  [r,g,b,h,s,l] = [1..length(widgets)]
+
+  setRGB(i)(old,new)
+    | changedHSL(old,new) = let RGB(pr,pg,pb) = HSL(new#h,new#s,new#l)
+                            in [pr,pg,pb]#i
+    | otherwise = new#i
+    
+  setHSL(i)(old,new)
+    | changedRGB(old,new) = let HSL(ph,ps,pl) = RGB(new#r,new#g,new#b)
+                            in [ph,ps,pl]#(i-3)
+    | otherwise = new#i
+    
+  changedHSL(old,new) = old#h /= new#h || old#s /= new#s || old#l /= new#l
+  changedRGB(old,new) = old#r /= new#r || old#g /= new#g || old#b /= new#b
+  
+
 --------------------------------------------------------------------------------
 -- Internal
 --------------------------------------------------------------------------------
 
-data WidgetType = Button | Toggle | Slider | Random | Counter | Timer
+data WidgetType = Button | Toggle | Slider
+                | Random | Counter | Timer
 
--- | The internal structure of a @Widget@ is not exposed in the user interface. You
--- have access only to the current value of each widget.
-data Widget = Widget
-  { selected :: Truth
-  , highlight :: Truth
-  , width :: Number
-  , height :: Number
-  , centerAt :: (Number,Number)
-  , label :: Text
-  , conversion :: Number -> Number
-  , value_ :: Number
-  , widget :: WidgetType
-  , randomPool :: [Number]
-  }
+data ReactorType = NoReact | React ReactorFun
 
 newWidget(l,x,y) = Widget
   { selected = False, highlight = False, width = 4, height = 1
   , centerAt = (x,y), label = l
-  , value_ = 0, conversion = (\v -> v)
+  , value_ = 0, oldval = 0
+  , conversion = noConv
+  , reactor = NoReact
   , widget = Button, randomPool = []
   }
   
+initRandom(ws,rs) = [ t(w,r) | w <- ws | r <- rs ]
+  where
+  t(w,r) | isRandom(w) = let rp = randomNumbers(r)
+                         in w { value_ = rp#1, randomPool = rest(rp,1) }
+         | otherwise   = w
+
+isRandom(Widget{widget = Random}) = True
+isRandom(_                      ) = False
 
 -- The value, adjusted according to the conversion function
 value :: Widget -> Number
@@ -344,6 +482,9 @@ value(Widget{..}) = value_.#conversion
 -- @guiDrawingOf@ or @randomDrawingOf@ interchangeably, without having
 -- to alter the calculations in the code.
 
+oldvalue :: Widget -> Number
+oldvalue(Widget{..}) = oldval.#conversion
+
 hit(mx,my,Widget {..}) = abs(mx-x) < width/2 && abs(my-y) < height/2
   where
   (x,y) = centerAt
@@ -353,6 +494,10 @@ hitReset(mx,my,Widget {..}) = mx - xmin < 0.3 && abs(my - y) < height/2
   (x,y) = centerAt
   xmin = x - width/2
   
+--------------------------------------------------------------------------------
+-- Draw
+--------------------------------------------------------------------------------
+
 drawWidget(w) = case w.#widget of
   Button -> drawButton(w)
   Toggle -> drawToggle(w)
@@ -436,7 +581,7 @@ drawSlider(Widget{..}) = info & foreground & background
   info = translated(infoMsg,x,y-height/4)
   foreground = translated(solidCircle(height/4),x',y')
              & translated(colored(solidRectangle(width,height/4),grey),x,y')
-  x' = x - width/2 + value_ * width
+  x' = x - width/2 + fenced(value_,0,1) * width
   y' = y + height/4
   background
     | highlight = translated(colored(rectangle(width,height),light(grey)),x,y)
@@ -460,28 +605,36 @@ drawRandom(Widget{..}) = drawLabel & drawSelection & drawHighlight
     | highlight = translated(outline,x,y)
     | otherwise = colored(translated(outline,x,y),grey)
 
+--------------------------------------------------------------------------------
+-- Update
+--------------------------------------------------------------------------------
+
 updateWidget(PointerPress(mx,my))(w@Widget{..})
   | widget == Button, hit(mx,my,w) = w { selected = True, highlight = False 
-                                       , value_ = 0.5
+                                       , oldval = value_ , value_ = 0.5
                                        }
   | widget == Button               = w { selected = False, highlight = False 
-                                       , value_ = 0
+                                       , oldval = value_ , value_ = 0
                                        }
   | widget == Counter, hit(mx,my,w) = w { selected = True, highlight = True 
-                                       , value_ = 1 + value_
-                                       }
+                                        , oldval = value_
+                                        , value_ = 1 + value_
+                                        }
   | widget == Toggle, hit(mx,my,w) = w { selected = not(selected)
+                                       , oldval = value_
                                        , value_ = 0.5 - value_
                                        , highlight = True
                                        }
-  | widget == Timer, hitReset(mx,my,w) = w { value_ = 0 }
+  | widget == Timer, hitReset(mx,my,w) = w { oldval = value_ , value_ = 0 }
   | widget == Timer, hit(mx,my,w)  = w { selected = not(selected)
                                        , highlight = True
                                        }
   | widget == Slider, hit(mx,my,w) = w { selected = True, highlight = True
+                                       , oldval = value_
                                        , value_ = updateSliderValue(mx,w)
                                        }
   | widget == Random, hit(mx,my,w) = w { selected = True, highlight = True
+                                       , oldval = value_
                                        , value_ = randomPool#1
                                        , randomPool = rest(randomPool,1)
                                        }
@@ -494,12 +647,13 @@ updateWidget(PointerRelease(_))(w@Widget{..})
   | widget == Toggle = w
   | widget == Timer  = w
   | selected         = w { selected = False, highlight = False
+                         , oldval = value_
                          , value_ = if widget == Button then 0 else value_
                          }
   | otherwise        = w
 
 updateWidget(TimePassing(dt))(w@Widget{..})
-  | widget == Timer, selected = w { value_ = dt + value_ }
+  | widget == Timer, selected = w { oldval = value_ , value_ = dt + value_ }
   | otherwise = w
   
 updateWidget(_)(widget) = widget
@@ -509,7 +663,9 @@ updateHighlight(mx,my)(w)
   | otherwise    = w { highlight = False }
 
 updateSlider(mx)(w@Widget{..})
-  | widget == Slider, selected = w { value_ = updateSliderValue(mx,w) }
+  | widget == Slider, selected = w { oldval = value_
+                                   , value_ = updateSliderValue(mx,w)
+                                   }
   | otherwise                  = w
 
 updateSliderValue(mx,s@Widget{..}) =
@@ -518,5 +674,64 @@ updateSliderValue(mx,s@Widget{..}) =
   mx' = max(x-width/2,min(x+width/2,mx))
   (x,_) = centerAt
 
+--------------------------------------------------------------------------------
+-- React
+--------------------------------------------------------------------------------
+
+react(ws) = ws.$reactWidget(old,new)
+  where
+  old = ws.$oldvalue
+  new = ws.$value
+
+reactWidget(old,new)(w@Widget{..}) = 
+  let
+    nfun(v)
+      | range01   = solver(0,1,conversion,v)
+      | otherwise = solver(0,value_,conversion,v)
+
+    range01 = widget == Button 
+           || widget == Toggle 
+           || widget == Slider 
+           || widget == Random
+  in
+  case reactor of
+      React(rfun) -> let mod = nfun(rfun(old,new))
+                     in w { oldval = mod, value_ = mod }
+      NoReact     -> w { oldval = value_ }
+
+--------------------------------------------------------------------------------
+-- Numerical solver
+--------------------------------------------------------------------------------
+
+bisection(t0,t1,f) = go(t0,f(t0),t1,f(t1))
+  where
+  neg_f(t) = -f(t)
+  go(t0,x0,t1,x1)
+    | abs(x0) < 0.01 = t0
+    | abs(x1) < 0.01 = t1
+    | x1 < x0        = bisection(t0,t1,neg_f)
+    | 0 < x0         = bisection(2*t0-t1,t1,f)
+    | x1 < 0         = bisection(t0,2*t1-t0,f)
+    | 0 < x'         = go(t0,x0,t',x')
+    | otherwise      = go(t',x',t1,x1)
+    where
+    r = x1/(x1-x0)
+    t' = r*t0 + (1-r)*t1
+    x' = f(t')
+
+solver(t0,t1,f,x) = bisection(t0,t1,f')
+  where
+  f'(t) = f(t) - x
+
+
+--------------------------------------------------------------------------------
+-- Helpers
+--------------------------------------------------------------------------------
+
 x .# f = f(x)
 xs .$ f = [f(x) | x <- xs]
+
+noConv :: Number -> Number
+noConv(v) = v
+
+fenced(v,vmin,vmax) = max(vmin,min(vmax,v))
