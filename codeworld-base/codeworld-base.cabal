@@ -33,6 +33,8 @@ Library
                        Extras.Widget,
                        -- Extras.Dataframe.Counties,
                        -- Extras.Dataframe.EnglishWords,
+                       Extras.Cw,
+                       Extras.Util,
                        Extras
   Other-modules:       Internal.Exports,
                        Internal.Num,
