@@ -15,7 +15,8 @@
  */
 'use strict';
 
-const autohelpEnabled = location.hash.length <= 2;
+// const autohelpEnabled = location.hash.length <= 2;
+const autohelpEnabled = false;
 
 /*
  * Initializes the programming environment.  This is called after the
