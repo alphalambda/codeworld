@@ -6,13 +6,16 @@
 {-# LANGUAGE ParallelListComp #-}
 {-# LANGUAGE RecordWildCards #-}
 
+-- | An experimental module with a collection of composition and
+-- application operators in different flavors.
 module Extras.Op
 where
 
 import Prelude
 import           "base" Prelude (map,filter,fst,snd)
 
--- | Applicative operator, used to apply a function to all the elements of a list
+-- | Applicative operator, used to apply a function to all the elements of a
+-- list
 (<$>) :: (a -> b) -> [a] -> [b]
 f <$> l = map f l
 
@@ -52,7 +55,8 @@ infixl 2 <|>
 
 infixl 3 <&>
 
--- | Reverses the order of function application, so that the argument is first and the function is second
+-- | Reverses the order of function application, so that the argument is
+-- first and the function is second
 (|>) :: a -> (a -> b) -> b
 x |> f = f x
 
@@ -76,15 +80,18 @@ infixl 1 .>
 
 infixl 1 .<
 
--- | Unicode version of the function application operator (flowing right to left)
+-- | Unicode version of the function application operator (flowing
+-- right to left)
 (⇐) = (<|)
 infixr 1 ⇐
 
--- | Unicode version of the function application operator (flowing left to right)
+-- | Unicode version of the function application operator (flowing
+-- left to right)
 (⇒) = (|>)
 infixl 1 ⇒
 
--- | Simulates object notation by allowing you to write @x.#method@ instead of @method(x)@
+-- | Simulates object notation by allowing you to write @x.#method@ instead
+-- of @method(x)@
 (.#) :: a -> (a -> b) -> b
 x .# f = f(x)
 
