@@ -13,7 +13,7 @@ import qualified "base" Prelude as P
 
 import Prelude
 
-import Extras((<$>))
+import Extras.Op((<$>))
 
 u3c1l1a2 :: [Number] -> [Number]
 u3c1l1a2(random) = truncation <$> (230 +) <$> (538 *) <$> random

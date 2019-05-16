@@ -9,8 +9,10 @@ module Extras.Game.Hanoi (solve,move,solveWith,Move)
 where
 
 import Prelude
-import Extras((<?>),(<$>),(<|),messages,formatting,iterated,cumsum,printedNumbers)
-
+import Extras.Op((<?>),(<$>),(<|))
+import Extras.Cw(pageFromTexts)
+import Extras.Extras(formatting)
+import Extras.Util(iterated,cumulativeSums,printedNumbers)
 
 -- traced(x,_) = x
 
@@ -63,7 +65,7 @@ iroot'(vec,n) = go(1,vec)
   go(index,x:xs) | n <= x = index
                  | otherwise = go(index+1,xs)
                  
-csum = iterated(cumsum,[1..])
+csum = iterated(cumulativeSums,[1..])
     
 combo(0,src,dst,_) = [move(src,dst)]
 combo(1,src,dst,other) = moveSub(src,dst,other)
@@ -192,7 +194,7 @@ drawMany(Model{..}) = translated(lettering(printed(total)<>" moves"),0,9.5)
     h = 18/numDiscs
 
 
-drawInfos(model) = resized(messages(movesInfo : "" : numInfos),2)
+drawInfos(model) = resized(pageFromTexts(movesInfo : "" : numInfos),2)
   & pictures[translated(solidRectangle(w,1),w/2,8.5-i)
             | i <- [1..]
             | s <- pegs(model), let w = 9*count(s)/numDiscs(model)

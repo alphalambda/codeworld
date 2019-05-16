@@ -20,7 +20,6 @@ Library
   Js-sources:          jsbits/deep_eq.js
   Exposed-modules:     Prelude,
                        Extras.SimUL1,
-                       Extras.Turtle,
                        Extras.Lessons,
                        Extras.Animation,
                        Extras.Game,
@@ -29,10 +28,10 @@ Library
                        Extras.Do,
                        Extras.SnapBlock.Tangram,
                        Extras.Game.Hanoi,
-                       Extras.Op,
                        -- Extras.Dataframe.Counties,
                        -- Extras.Dataframe.EnglishWords,
-                       Extras,
+                       Extras.Extras,
+                       -- Submitted:
                        Extras.Cw,
                        Extras.Op,
                        Extras.Turtle,
