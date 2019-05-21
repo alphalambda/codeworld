@@ -1,13 +1,18 @@
-
 {-# LANGUAGE NoImplicitPrelude #-}
+{-# LANGUAGE PackageImports    #-}
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Extras.Geometry where
+-- | Functions for Geometry
+module Extras.Geometry
+    where
 
 import Prelude
 import Extras.Op
-import GHC.Base(Maybe(..))
+import Extras.Util
+
+import "base" Prelude (Maybe(..),zip)
+
 import qualified Data.List as D
 
 randomPoints (x:y:other) = (range x,range y) : randomPoints other
@@ -15,15 +20,21 @@ randomPoints (x:y:other) = (range x,range y) : randomPoints other
     range x = 10*x-5
 
 -------------------------------------------------------------------------------
+--- Internal parameters
+-------------------------------------------------------------------------------
+
+dot_radius = 0.1
+coordSize = 10.0
+
+-------------------------------------------------------------------------------
 --- Drawing
 -------------------------------------------------------------------------------
 
 label(l,(x,y)) =
-  translated(scaled(text(l),0.75,0.75),x+0.25,y+0.5)
+  translated(scaled(lettering(l),0.75,0.75),x+0.25,y+0.5)
   -- p +| (0.25,0)) $ P.scale textscale textscale $ P.text text
 
-dot_radius = 0.1
-coordSize = 10.0
+data Pt = PlusPt | EksPt | StarPt | DotPt
 
 plus_pt = pictures [ hline, vline ]
     where
@@ -48,7 +59,7 @@ drawCircle (o,p) = translated(circle(r),x,y)
     (x,y) = o
     r = dist o p
 
-drawPointsLabels pts lbl = pictures[draw pl | pl <- zip(pts,lbl)]
+drawPointsLabels pts lbl = pictures[draw pl | pl <- zip pts lbl]
     where
     draw (p,l) = drawPoint p & label(l,p)
 
@@ -77,7 +88,7 @@ drawRay (p,q) = drawLineWith liner (p,q)
 
 showPoint (x,y) = "(" <> printed(x) <> "," <> printed(y) <> ")"
 
-showPointsLabels pts lbl = joined[showit pl | pl <- zip(pts,lbl)]
+showPointsLabels pts lbl = joined[showit pl | pl <- zip pts lbl]
     where
     showit (p,l) = l <> "=" <> showPoint(p) <> "  "
     
@@ -305,8 +316,17 @@ internal_beyond (a,b) c = angle a b c > 90
 --- Useful Constructions
 ---------------------------------------------------------------------
 
-midpoint :: Point -> Point -> Point
-midpoint p q = 0.5 *| (p +| q)
+centered(pts) = foreach(pts,\p -> translatedPoint(p,-cx,-cy))
+  where
+  (cx,cy) = midpoint(pts)
+  
+midpoint(pts) = whileloop(input,check,next,output)
+  where
+  input = (pts,(0,0),0)
+  check(pts,_,_) = nonEmpty(pts)
+  next(pts,(sx,sy),n) = (rest(pts,1),(sx+x,sy+y),n+1) where (x,y) = pts#1
+  output(_,_,0) = (0,0)
+  output(_,(sx,sy),n) = (sx/n,sy/n)
 
 mirror :: Point -> Point -> Point
 mirror c x = c +| c -| x
@@ -444,12 +464,3 @@ solve_circles_hard r1 (a,b) r2 (c,d) =
 solve_circles (o1,p1) (o2,p2) = solve_circles_hard r1 o1 r2 o2
     where r1 = dist o1 p1
           r2 = dist o2 p2
-
--------------------------------------------------------------------------------
---- Helper Functions
--------------------------------------------------------------------------------
-
-zip ([],_) = []
-zip (_,[]) = []
-zip (l:ls,p:ps) = (l,p):zip(ls,ps)
-
