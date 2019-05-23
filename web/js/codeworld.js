@@ -1335,7 +1335,7 @@ function editorHelp(doc) {
         "<tr><td>Ctrl + Shift +  U / Alt + U </td><td> Redo Selection </td></tr>" +
         "<tr><td>Tab / Ctrl + ] </td><td> Indent </td></tr>" +
         "<tr><td>Shift + Tab / Ctrl + [ </td><td> Unindent </td></tr>" +
-        "<tr><td>Ctrl + I </td><td> Reformat (Haskell Mode Only) </td></tr>" +
+        // "<tr><td>Ctrl + I </td><td> Reformat (Haskell Mode Only) </td></tr>" +
         "</tbody></table></div>";
     sweetAlert({
         title: 'Editor Shortcut Keys',
