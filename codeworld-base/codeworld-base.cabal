@@ -19,6 +19,7 @@ Library
   Hs-source-dirs:      src
   Js-sources:          jsbits/deep_eq.js
   Exposed-modules:     Standard,
+                       Standard.Debug,
                        Extras.SimUL1,
                        Extras.Lessons,
                        Extras.Animation,

@@ -32,7 +32,7 @@ module Standard (
     , module Internal.Exports
     ) where
 
-import Internal.Exports
+import Internal.Exports hiding (coordinatePlane)
 import "base" Prelude (IO)
 
 import Internal.Num
@@ -83,3 +83,4 @@ import Internal.Picture
 --   Example:
 --
 -- > program = groupActivityOf(n, initial, change, picture)
+
