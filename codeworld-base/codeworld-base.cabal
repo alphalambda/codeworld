@@ -18,7 +18,7 @@ Description:
 Library
   Hs-source-dirs:      src
   Js-sources:          jsbits/deep_eq.js
-  Exposed-modules:     Prelude,
+  Exposed-modules:     Standard,
                        Extras.SimUL1,
                        Extras.Lessons,
                        Extras.Animation,
@@ -45,7 +45,8 @@ Library
                        Internal.Picture,
                        Internal.Event,
                        Internal.CodeWorld,
-                       Internal.Truth
+                       Internal.Truth,
+                       Prelude
   Build-depends:       base,
                        bytestring,
                        codeworld-error-sanitizer,
