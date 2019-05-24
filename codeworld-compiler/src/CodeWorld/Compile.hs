@@ -185,7 +185,7 @@ buildArgs "codeworld" =
     , "-XScopedTypeVariables"
     , "-XTypeOperators"
     , "-XViewPatterns"
-    , "-XImplicitPrelude" -- MUST come after RebindableSyntax.
+{-    , "-XImplicitPrelude" -} -- MUST come after RebindableSyntax.
     , "-main-is"
     , "Main.program"
     ]
