@@ -220,7 +220,7 @@ make_sim(simrow,x_min,x_max,landmarks,parts) =
                 & pictures[render_mark(m) | m <- [0..parts]]
       in
         blank
-        & colored(translated(simline,0,simrow),green)
+        & colored(translated(simline,0,simrow),cgreen)
         & pictures[translated(minitext(lname,0.5),screen_coords(lpos),simrow-0.5)
                   | (lname,lpos) <- landmarks
                   ]
@@ -289,7 +289,7 @@ make_chart(ct,cx,ylabel,t_max,x_min,x_max) =
             & translated(scaled(text("time"),0.8,0.8),0,-labelpos)
             & translated(rotated(scaled(text(ylabel),0.8,0.8),90),-labelpos,0)
       in
-        colored(translated(chart,ct,cx),black)
+        colored(translated(chart,ct,cx),cblack)
 
     render_graph(pts,color) = colored(polyline[screen_coords p | p <- pts],color)
 
@@ -452,3 +452,5 @@ minilabel(num,s) = minitext(approximate(num),s)
 
 minitext(txt,s) = scaled(text(txt),s,s)
 
+cblack = RGB(0,0,0)
+cgreen = RGB(0,1,0)
