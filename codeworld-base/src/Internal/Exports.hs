@@ -124,7 +124,7 @@ module Internal.Exports
     , rotated
     , pictures
     , (&)
-    , coordinatePlane
+    {- , coordinatePlane -}
     , codeWorldLogo
     -- * Events
     , Event(..)

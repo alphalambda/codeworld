@@ -17,35 +17,25 @@
   limitations under the License.
 -}
 --------------------------------------------------------------------------------
--- |The standard set of functions and variables available to all programs.
+-- | The standard set of functions and variables available to all programs.
 -- This version is for debugging purposes only. Look at the documentation
 -- in the "Standard" module for more information.
 module Standard.Debug (
-    -- * Numbers
-      module Internal.Num
-    -- * Text
-    , module Internal.Text
-    -- * General purpose functions
-    , module Internal.Prelude
-    , IO
-    , module Internal.Exports
+      module Include
     , drawingOf
+    -- * Redefined drawing primitives
+    , solidRectangle, solidCircle, solidPolygon, solidClosedCurve
+    , sector
     ) where
 
-import Internal.Exports hiding (drawingOf,coordinatePlane)
-import "base" Prelude (IO)
+import Prelude as Include hiding (
+    drawingOf, solidRectangle, solidCircle, solidPolygon, solidClosedCurve
+    , sector
+    )
 
-import Internal.Num
-import Internal.Prelude hiding (randomsFrom)
-import Internal.Text hiding (fromCWText, toCWText)
-
-import qualified Internal.CodeWorld as CW
-import Internal.Picture (coordinatePlane)
-
-{-
-import Internal.Color
-import Internal.Event
--}
+import qualified "codeworld-api" CodeWorld as CWA
+import qualified Internal.CodeWorld as CWI
+import qualified Internal.Picture as P
 
 ------------------------------------------------------------------------------
 
@@ -54,9 +44,19 @@ import Internal.Event
 -- LSU Modifications
 ------------------------------------------------------------------------------
 
+solidRectangle = P.rectangle
+
+solidCircle = P.circle
+
+solidPolygon = P.polygon
+
+solidClosedCurve = P.closedCurve
+
+sector = P.arc
+
 -- | Show a coordinate plane along with the given Picture. This is intended
 -- for debugging purposes, so that you can place your objects more accurately.
 -- However, it should not be used for your final product. As a reminder,
 -- your picture is shown all in black.
 drawingOf :: Picture -> Program
-drawingOf pic = CW.drawingOf(coordinatePlane & colored(pic,black))
+drawingOf pic = CWI.drawingOf(P.CWPic CWA.coordinatePlane & colored(pic,black))

@@ -16,41 +16,26 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -}
---------------------------------------------------------------------------------
--- |The standard set of functions and variables available to all programs.
+-------------------------------------------------------------------------------
+-- | The standard set of functions and variables available to all programs.
 --
 -- You may use any of these functions and variables without defining them.
 module Standard (
     -- $intro
-    -- * Numbers
-      module Internal.Num
-    -- * Text
-    , module Internal.Text
-    -- * General purpose functions
-    , module Internal.Prelude
-    , IO
-    , module Internal.Exports
+    module Prelude
     ) where
 
-import Internal.Exports hiding (coordinatePlane)
-import "base" Prelude (IO)
+import Prelude
 
-import Internal.Num
-import Internal.Prelude hiding (randomsFrom)
-import Internal.Text hiding (fromCWText, toCWText)
-
-import Internal.CodeWorld
-import Internal.Color
-import Internal.Event
-import Internal.Picture
-
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- $intro
--- Welome to CodeWorld!  You can define your own pictures, animations, and games
+-- Welcome to CodeWorld!  You can define your own pictures, animations,
+-- and games
 -- by defining variables and functions.  There are four kinds of CodeWorld
 -- programs:
 --
--- * Pictures.  To create a picture, you'll define the variable called @program@
+-- * Pictures.  To create a picture, you'll define the variable
+--   called @program@
 --   using 'drawingOf'.  The parameter to 'drawingOf' should be a 'Picture'.
 --   Example:
 --
@@ -67,7 +52,8 @@ import Internal.Picture
 --   responding to pointer and keyboard events.  It also has a persistent state
 --   that can be used to remember information about the past.  To create an
 --   activity, you should first decide on the type to describe the state of
---   things (called the "world" type).  You will then describe the activity with:
+--   things (called the "world" type).
+--   You will then describe the activity with:
 --   an initial world, a change function that describes how the world changes
 --   when various things happen, and a picture function that converts the world
 --   into a picture to display.  You will then use 'activityOf' to define
@@ -75,7 +61,8 @@ import Internal.Picture
 --
 -- > program = activityOf(initial, change, picture)
 --
--- * Group activities.  Finally, you can build a multi-user activity that others
+-- * Group activities.  Finally, you can build a multi-user activity
+--   that others
 --   can join over the internet.  The process is similar to activities, except
 --   that you'll specify a number of participants, and your change and picture
 --   functions receive extra arguments describing which participant an event or

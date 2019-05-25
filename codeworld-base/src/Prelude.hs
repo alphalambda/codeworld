@@ -39,10 +39,12 @@ import Internal.Num
 import Internal.Prelude hiding (randomsFrom)
 import Internal.Text hiding (fromCWText, toCWText)
 
+{-
 import Internal.CodeWorld
 import Internal.Color
 import Internal.Event
 import Internal.Picture
+-}
 
 --------------------------------------------------------------------------------
 -- $intro
