@@ -60,13 +60,13 @@ sector = P.arc
 -- However, it should not be used for your final product. As a reminder,
 -- your picture is shown all in black.
 drawingOf :: Picture -> Program
-drawingOf pic = CWI.drawingOf(P.coordinatePlane & colored(pic,black))
+drawingOf pic = CWI.drawingOf(P.coordinatePlane & colored(pic,RGB(0,0,0)))
 
 -- | Like 'drawingOf', this function is intended for debugging animations.
 animationOf :: (Number -> Picture) -> Program
 animationOf draw = CWI.animationOf(draw')
     where
-    draw'(t) = P.coordinatePlane & colored(draw(t),black)
+    draw'(t) = P.coordinatePlane & colored(draw(t),RGB(0,0,0))
 
 -- | Debug an slide show. Unlike the normal @slideshow@, this function
 -- automatically advances slides every 2 seconds.
