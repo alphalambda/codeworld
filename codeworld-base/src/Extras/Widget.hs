@@ -22,7 +22,7 @@ module Extras.Widget(
 
 import Prelude
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- $intro
 -- = Widget API
 --
@@ -31,9 +31,9 @@ import Prelude
 --
 -- > import Extras.Widget
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Entry Points
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 -- | The function @guiDrawingOf@ is an entry point for drawing that allows
 -- access to a simple GUI. It needs two arguments: a list of
@@ -45,18 +45,20 @@ import Prelude
 --
 -- > program = guiDrawingOf(widgets,draw)
 -- >   where
--- >   widgets = [ withConversion(\v -> 1 + 19 * v   , slider("width"        ,-7,-7))
--- >             , withConversion(\v -> 1 + 19 * v   , slider("height"       ,-7,-9))
--- >             , withConversion(flipflop           , toggle("show circle"  ,-7,-5))
--- >             , withConversion(flipflop           , button("show in green",-7,-3))
--- >             , withConversion(\v -> 0.2 + 0.8 * v, randomBox("radius"    ,-7,-1))
+-- >   widgets = [ withConversion(fullrange   , slider("width"        ,-7,-7))
+-- >             , withConversion(fullrange   , slider("height"       ,-7,-9))
+-- >             , withConversion(flipflop    , toggle("show circle"  ,-7,-5))
+-- >             , withConversion(flipflop    , button("show in green",-7,-3))
+-- >             , withConversion(radiusrange , randomBox("radius"    ,-7,-1))
 -- >             ]
 -- > 
+-- >   fullrange(v) = 1 + 19 * v
 -- >   flipflop(v) = truncation(1 + 2 * v)
+-- >   radiusrange(v) = 0.2 + 0.8 * v
 -- > 
 -- > draw(values) = blank
 -- >   & [blank, circle(r)]#s
--- >   & colored(solidRectangle(w,h),[red,green]#c)
+-- >   & colored(solidRectangle(w,h),[RGB(1,0,0),RGB(0,1,0)]#c)
 -- >   where
 -- >   w = values#1
 -- >   h = values#2
@@ -135,11 +137,12 @@ guiActivityOf(widgetsUser,initUser,updateUser,drawUser) =
   drawAll(widgets,state) =
     pictures(widgets.$drawWidget) & drawUser(widgets.$value,state)
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Widget API
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
--- | The internal structure of a @Widget@ is not exposed in the user interface. You
+-- | The internal structure of a @Widget@ is not exposed in
+-- the user interface. You
 -- have access only to the current value of each widget.
 data Widget = Widget
   { selected :: Truth
@@ -199,7 +202,9 @@ counter(p) = (newWidget(p)) { widget = Counter, value_ = 1 }
 -- >   widgets = [ withConversion(\v -> 1 + 9 * v , slider("length",-7,-7))
 -- >             , withConversion(\v -> v * 30    , timer("angle"  ,-7,-9)) ]
 -- > 
--- >   draw([l,a]) = rotated(translated(colored(solidRectangle(l,0.25),red),l/2,0),a)
+-- >   draw([l,a]) = rotated(translated(redBox,l/2,0),a)
+-- >       where
+-- >       redBox = colored(solidRectangle(l,0.25),RGB(1,0,0))
 --
 -- The timer operates in seconds, including decimals. However, the precision
 -- of the timer is not guaranteed beyond one or two decimals.
@@ -265,12 +270,15 @@ type ReactorFun = ([Number],[Number]) -> Number
 -- >       , withConversion(\v -> 0.1 + 4.9*v, slider("radius",-8,3))
 -- >       ]
 -- > 
--- >   draw(v) = translated(colored(solidCircle(v#radius),red),0,v#ballPy)
+-- >   draw(v) = translated(redBall,0,v#ballPy)
+-- >       where
+-- >       redBall = colored(solidCircle(v#radius),RGB(1,0,0))
 -- > 
 -- >   [ballPy,ballVy,time,radius] = [1..length(widgets)]
 -- > 
 -- >   setBallPy(old,new)
--- >     | old#time < new#time = new#ballPy + new#ballVy * (new#time - old#time)
+-- >     | old#time < new#time = new#ballPy 
+-- >                           + new#ballVy * (new#time - old#time)
 -- >     | otherwise = new#ballPy
 -- >   
 -- >   setBallVy(old,new)
@@ -286,26 +294,28 @@ withUpdate(rfun,w) = w { reactor = React(rfun) }
 setUpdate :: ReactorFun -> Widget -> Widget
 setUpdate(rfun)(w) = w { reactor = React(rfun) }
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Examples
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 -- | This is the example shown in the documentation for @guiDrawingOf@
 widgetExample1 :: Program
 widgetExample1 = guiDrawingOf(widgets,draw)
   where
-  widgets = [ withConversion(\v -> 1 + 19 * v   , slider("width"        ,-7,-7))
-            , withConversion(\v -> 1 + 19 * v   , slider("height"       ,-7,-9))
-            , withConversion(flipflop           , toggle("show circle"  ,-7,-5))
-            , withConversion(flipflop           , button("show in green",-7,-3))
-            , withConversion(\v -> 0.2 + 0.8 * v, randomBox("radius"    ,-7,-1))
+  widgets = [ withConversion(fullrange   , slider("width"        ,-7,-7))
+            , withConversion(fullrange   , slider("height"       ,-7,-9))
+            , withConversion(flipflop    , toggle("show circle"  ,-7,-5))
+            , withConversion(flipflop    , button("show in green",-7,-3))
+            , withConversion(radiusrange , randomBox("radius"    ,-7,-1))
             ]
 
+  fullrange(v) = 1 + 19 * v
   flipflop(v) = truncation(1 + 2 * v)
+  radiusrange(v) = 0.2 + 0.8 * v
 
   draw(values) = blank
     & [blank, circle(r)]#s
-    & colored(solidRectangle(w,h),[red,green]#c)
+    & colored(solidRectangle(w,h),[RGB(1,0,0),RGB(0,1,0)]#c)
     where
     w = values#1
     h = values#2
@@ -353,7 +363,9 @@ widgetExample3 = guiDrawingOf(widgets,draw)
   widgets = [ withConversion(\v -> 1 + 9 * v , slider("length",-7,-7))
             , withConversion(\v -> v * 30    , timer("angle"  ,-7,-9)) ]
 
-  draw([l,a]) = rotated(translated(colored(solidRectangle(l,0.25),red),l/2,0),a)
+  draw([l,a]) = rotated(translated(box,l/2,0),a)
+      where
+      box = colored(solidRectangle(l,0.25),RGB(1,0,0))
 
 
 -- | This example shows a tree created by a recursive function
@@ -398,7 +410,7 @@ widgetExample5 = guiDrawingOf(widgets,draw)
             , withConversion(\v -> 0.1 + 4.9*v, slider("radius",-8,3))
             ]
 
-  draw(v) = translated(colored(solidCircle(v#radius),red),0,v#ballPy)
+  draw(v) = translated(colored(solidCircle(v#radius),RGB(1,0,0)),0,v#ballPy)
 
   [ballPy,ballVy,time,radius] = [1..length(widgets)]
 
@@ -443,9 +455,9 @@ widgetExample6 = guiDrawingOf(widgets,draw)
   changedRGB(old,new) = old#r /= new#r || old#g /= new#g || old#b /= new#b
   
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Internal
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 data WidgetType = Button | Toggle | Slider
                 | Random | Counter | Timer
@@ -494,9 +506,9 @@ hitReset(mx,my,Widget {..}) = mx - xmin < 0.3 && abs(my - y) < height/2
   (x,y) = centerAt
   xmin = x - width/2
   
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Draw
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 drawWidget(w) = case w.#widget of
   Button -> drawButton(w)
@@ -516,10 +528,10 @@ drawButton(Widget{..}) = drawLabel & drawSelection & drawHighlight
   h = 0.9 * height
   drawLabel = translated(msg,x,y)
   drawSelection
-    | selected = translated(colored(solid,grey),x,y)
+    | selected = translated(colored(solid,cgrey),x,y)
     | otherwise = translated(outline,x,y)
   drawHighlight
-    | highlight = translated(colored(rectangle(width,height),light(grey)),x,y)
+    | highlight = translated(colored(rectangle(width,height),light(cgrey)),x,y)
     | otherwise = blank
 
 drawCounter(Widget{..}) = drawLabel & drawSelection
@@ -535,9 +547,9 @@ drawCounter(Widget{..}) = drawLabel & drawSelection
     | highlight = msg(printed(value_.#conversion))
     | otherwise = msg(label)
   drawSelection
-    | selected = translated(colored(solid,grey),x,y)
-    | highlight = translated(colored(outline,black),x,y)
-    | otherwise = translated(colored(outline,grey),x,y)
+    | selected = translated(colored(solid,cgrey),x,y)
+    | highlight = translated(colored(outline,cblack),x,y)
+    | otherwise = translated(colored(outline,cgrey),x,y)
 
 drawToggle(Widget{..}) = drawSelection & drawLabel & drawHighlight
   where
@@ -545,13 +557,13 @@ drawToggle(Widget{..}) = drawSelection & drawLabel & drawHighlight
   h = 0.5
   x' = x + 2/5*width
   drawSelection
-    | selected = translated(colored(solidRectangle(w,h),grey),x',y)
+    | selected = translated(colored(solidRectangle(w,h),cgrey),x',y)
     | otherwise = translated(rectangle(0.9*w,0.9*h),x',y)
   drawLabel = translated(msg,x - width/10,y)
   drawHighlight
-    | highlight = colored(outline,light(grey))
+    | highlight = colored(outline,light(cgrey))
                 & translated(rectangle(w,h),x',y)
-    | otherwise = colored(outline,light(light(grey)))
+    | otherwise = colored(outline,light(light(cgrey)))
   outline = translated(rectangle(width,height),x,y)
   (x,y) = centerAt
   msg = dilated(lettering(label),0.5)
@@ -570,21 +582,21 @@ drawTimer(Widget{..}) = drawLabel & drawSelection & drawReset & drawHighlight
   drawHighlight
     | highlight = outline
                 & translated(rectangle(0.5,0.5),x',y)
-    | otherwise = colored(outline,light(grey))
+    | otherwise = colored(outline,light(cgrey))
   outline = translated(rectangle(width,height),x,y)
   (x,y) = centerAt
   msg(txt) = translated(dilated(lettering(txt),0.5), x-width/10, y)
-  box(w,h) = colored(solidRectangle(w,h),grey)
+  box(w,h) = colored(solidRectangle(w,h),cgrey)
   
 drawSlider(Widget{..}) = info & foreground & background
   where
   info = translated(infoMsg,x,y-height/4)
   foreground = translated(solidCircle(height/4),x',y')
-             & translated(colored(solidRectangle(width,height/4),grey),x,y')
+             & translated(colored(solidRectangle(width,height/4),cgrey),x,y')
   x' = x - width/2 + fenced(value_,0,1) * width
   y' = y + height/4
   background
-    | highlight = translated(colored(rectangle(width,height),light(grey)),x,y)
+    | highlight = translated(colored(rectangle(width,height),light(cgrey)),x,y)
     | otherwise = blank
   (x,y) = centerAt
   infoMsg = dilated(lettering(label<>": "<>printed(value_.#conversion)),0.5)
@@ -599,15 +611,15 @@ drawRandom(Widget{..}) = drawLabel & drawSelection & drawHighlight
     | highlight = msg(printed(value_.#conversion))
     | otherwise = msg(label)
   drawSelection
-    | selected = translated(colored(solid,grey),x,y)
+    | selected = translated(colored(solid,cgrey),x,y)
     | otherwise = blank
   drawHighlight
     | highlight = translated(outline,x,y)
-    | otherwise = colored(translated(outline,x,y),grey)
+    | otherwise = colored(translated(outline,x,y),cgrey)
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Update
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 updateWidget(PointerPress(mx,my))(w@Widget{..})
   | widget == Button, hit(mx,my,w) = w { selected = True, highlight = False 
@@ -674,9 +686,9 @@ updateSliderValue(mx,s@Widget{..}) =
   mx' = max(x-width/2,min(x+width/2,mx))
   (x,_) = centerAt
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- React
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 react(ws) = ws.$reactWidget(old,new)
   where
@@ -699,9 +711,9 @@ reactWidget(old,new)(w@Widget{..}) =
                      in w { oldval = mod, value_ = mod }
       NoReact     -> w { oldval = value_ }
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Numerical solver
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 bisection(t0,t1,f) = go(t0,f(t0),t1,f(t1))
   where
@@ -724,9 +736,9 @@ solver(t0,t1,f,x) = bisection(t0,t1,f')
   f'(t) = f(t) - x
 
 
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 -- Helpers
---------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 x .# f = f(x)
 xs .$ f = [f(x) | x <- xs]
@@ -735,3 +747,6 @@ noConv :: Number -> Number
 noConv(v) = v
 
 fenced(v,vmin,vmax) = max(vmin,min(vmax,v))
+
+cgrey = RGB(0.5,0.5,0.5)
+cblack = RGB(0,0,0)
