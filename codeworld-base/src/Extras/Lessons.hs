@@ -23,5 +23,3 @@ object =
         & translated(thickRectangle(3.42,5.76,0.1),-5.17,4.21)
     ]
 
-coordinatePlane = blank
-
