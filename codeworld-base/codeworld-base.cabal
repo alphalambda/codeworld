@@ -33,6 +33,7 @@ Library
                        -- Extras.Dataframe.EnglishWords,
                        Extras.Extras,
                        -- Submitted:
+                       Extras.Colors,
                        Extras.Cw,
                        Extras.Op,
                        Extras.Turtle,
