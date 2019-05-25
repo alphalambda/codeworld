@@ -22,14 +22,15 @@
 -- in the "Standard" module for more information.
 module Standard.Debug (
       module Include
-    , drawingOf
+    , drawingOf, animationOf, autoSlideshow, slideshow
     -- * Redefined drawing primitives
     , solidRectangle, solidCircle, solidPolygon, solidClosedCurve
     , sector
     ) where
 
 import Prelude as Include hiding (
-    drawingOf, solidRectangle, solidCircle, solidPolygon, solidClosedCurve
+    drawingOf, animationOf
+    , solidRectangle, solidCircle, solidPolygon, solidClosedCurve
     , sector
     )
 
@@ -59,4 +60,27 @@ sector = P.arc
 -- However, it should not be used for your final product. As a reminder,
 -- your picture is shown all in black.
 drawingOf :: Picture -> Program
-drawingOf pic = CWI.drawingOf(P.CWPic CWA.coordinatePlane & colored(pic,black))
+drawingOf pic = CWI.drawingOf(P.coordinatePlane & colored(pic,black))
+
+-- | Like 'drawingOf', this function is intended for debugging animations.
+animationOf :: (Number -> Picture) -> Program
+animationOf draw = CWI.animationOf(draw')
+    where
+    draw'(t) = P.coordinatePlane & colored(draw(t),black)
+
+-- | Debug an slide show. Unlike the normal @slideshow@, this function
+-- automatically advances slides every 2 seconds.
+slideshow :: [Picture] -> Program
+slideshow(slides) = autoSlideshow(slides,2)
+
+-- | Debug an automatic slide show
+autoSlideshow :: ([Picture],Number) -> Program
+autoSlideshow(slides,period) = animationOf(sshow)
+  where
+  len = length(slides)
+  sshow(t)
+    | len < 1 = pictures([])
+    | otherwise = slides#num
+    where
+    num = 1 + remainder(truncation(t/period), len)
+
