@@ -27,6 +27,7 @@ module Internal.Exports
     , pattern RGBA
     , pattern RGB
     , pattern HSL
+{-
     , black
     , white
     , red
@@ -46,6 +47,7 @@ module Internal.Exports
     , purple
     , gray
     , grey
+-}
     , mixed
     , lighter
     , light
@@ -61,6 +63,7 @@ module Internal.Exports
     , saturation
     , luminosity
     , alpha
+{-
     , pattern White
     , pattern Black
     , pattern Gray
@@ -73,6 +76,7 @@ module Internal.Exports
     , pattern Purple
     , pattern Pink
     , pattern Brown
+-}
     -- * Pictures
     , Point
     , translatedPoint
@@ -112,9 +116,9 @@ module Internal.Exports
     , arc
     , sector
     , thickArc
-    , text
+    {- , text -}
     , lettering
-    , styledText
+    {- , styledText -}
     , styledLettering
     , colored
     , coloured
