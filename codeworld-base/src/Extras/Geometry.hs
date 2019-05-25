@@ -92,7 +92,7 @@ showPointsLabels pts lbl = joined[showit pl | pl <- zip pts lbl]
     where
     showit (p,l) = l <> "=" <> showPoint(p) <> "  "
     
-backPlane n = translated(colored(solidRectangle(n,1),white),0,-9.5)
+backPlane n = translated(colored(solidRectangle(n,1),RGB(1,1,1)),0,-9.5)
 
 -------------------------------------------------------------------------------
 --- Synthetic Geometry

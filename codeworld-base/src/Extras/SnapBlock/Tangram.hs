@@ -30,3 +30,4 @@ inventory = blank
   & translated(minitext("1 tangramR"),-8,-9)
   where
   minitext(t) = dilated(lettering(t),1/2)
+  red = HSL(0,0.75,0.50)
