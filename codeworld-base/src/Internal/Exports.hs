@@ -128,7 +128,7 @@ module Internal.Exports
     , rotated
     , pictures
     , (&)
-    {- , coordinatePlane -}
+    , coordinatePlane
     , codeWorldLogo
     -- * Events
     , Event(..)
@@ -157,4 +157,7 @@ import Internal.Text
 import Internal.CodeWorld
 import Internal.Color
 import Internal.Event
-import Internal.Picture
+import Internal.Picture hiding (coordinatePlane)
+
+coordinatePlane :: Picture
+coordinatePlane = polyline([(-10,0),(10,0)]) & polyline([(0,-10),(0,10)])
