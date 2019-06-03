@@ -19,6 +19,8 @@ Library
   Hs-source-dirs:      src
   Js-sources:          jsbits/deep_eq.js
   Exposed-modules:     Prelude,
+                       Lessons.Penguin,
+                       Lessons.Operators,
                        Extras.SimUL1,
                        Extras.Lessons,
                        Extras.Animation,
