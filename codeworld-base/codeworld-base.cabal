@@ -21,6 +21,7 @@ Library
   Exposed-modules:     Standard,
                        Standard.Debug,
                        Lessons.Penguin,
+                       Lessons.Operators,
                        Extras.SimUL1,
                        Extras.Lessons,
                        Extras.Animation,
