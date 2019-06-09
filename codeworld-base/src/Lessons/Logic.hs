@@ -7,9 +7,13 @@
 
 -- | Export only those functions useful for functional logic
 module Lessons.Logic(
-    (+),(-),(*),(/),(==), max
-    , fromInteger, fromRational
+    (+),(-),(*),(/),(==), max, negate
+    , fromInteger, fromRational, fromString
     , drawingOf, lettering, printed
+    , solidCircle, solidRectangle, solidPolygon
+    , translated, rotated, dilated, scaled, colored
+    , (&), pictures
+    , (<>)
     ) where
 
 import Prelude
