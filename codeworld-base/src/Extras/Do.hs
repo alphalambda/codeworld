@@ -8,7 +8,8 @@
 module Extras.Do
        (($),(>>=),(>>),return,done,prompt,promptNumber,print
        ,today,now,weekDate
-       ,numericValue,fromInt,fromDouble)
+       ,numericValue,fromInt,fromDouble
+       ,fail)
 where
 
 import qualified "base" Prelude as P
