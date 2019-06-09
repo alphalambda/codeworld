@@ -21,6 +21,7 @@ Library
   Exposed-modules:     Standard,
                        Standard.Debug,
                        Lessons.Bear,
+                       Lessons.Logic,
                        Lessons.Penguin,
                        Lessons.Operators,
                        Extras.SimUL1,
