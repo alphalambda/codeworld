@@ -146,6 +146,9 @@ module Internal.Exports
     , interactionOf
     , debugInteractionOf
     , collaborationOf
+    -- * Locally fixed identifiers
+    , concatenated
+    , truncated
     ) where
 
 import "base" Prelude (IO)
@@ -161,3 +164,9 @@ import Internal.Picture hiding (coordinatePlane)
 
 coordinatePlane :: Picture
 coordinatePlane = polyline([(-10,0),(10,0)]) & polyline([(0,-10),(0,10)])
+
+concatenated :: [[a]] -> [a]
+concatenated = concatenation
+
+truncated :: Number -> Number
+truncated = truncation
