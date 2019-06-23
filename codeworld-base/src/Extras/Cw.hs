@@ -207,14 +207,13 @@ data SS = SS
   , slides :: [Picture]
   }
   
+
 randomSlideshow_ :: ([Number] -> [Picture]) -> Program
-randomSlideshow_(mkslides) = interactionOf(initial,update,handle,render)
+randomSlideshow_(mkslides) = activityOf(initial,update,render)
     where
     initial (r:rs) = SS { time = 0, tlast = 0, current = 1, random = rs
                         , slides = mkslides(randomNumbers(r))
                         }
-    update(ss@SS{..},dt) = ss { time = time + dt }
-    
     render(SS{..})
       | empty(slides) = pictures([])
       | otherwise     = showSlide & slides#current
@@ -222,71 +221,50 @@ randomSlideshow_(mkslides) = interactionOf(initial,update,handle,render)
       showSlide
           | time - tlast > 2 = blank
           | otherwise = translated(mark,-9.5,-9.5)
-                
+          
       mark = scaled(lettering(printed(current)),0.5,0.5)
            & colored(solidRectangle(1,1),RGB(0.9,0.9,0.9))
-           
-    handle(ss,event) = mayHandleEvent(ss)
+    update(ss@SS{..}, event) = case event of
+      TimePassing(dt)    -> ss { time = time + dt }
+      KeyPress(kp)       -> handleKey(ss,kp)
+      PointerMovement(_) -> ss { tlast = time }
+      PointerPress(_)    -> move(ss,1)
+      other              -> ss
+
+    handleKey(ss, kp) = case kp of
+      "R"         -> jump(ss,1)
+      "N"         -> move(ss,1)
+      " "         -> move(ss,1)
+      "Enter"     -> move(ss,1)
+      "PageDown"  -> move(ss,  1)
+      "P"         -> move(ss, -1)
+      "PageUp"    -> move(ss, -1)
+      "Backspace" -> move(ss, -1)
+      other       -> ss
+
+    jump(ss@SS{..},ns) = remake(ss')
+        where
+        ss' = ss { current = ns, tlast = time }
+                                                   
+    move(ss@SS{..},ds) = rebuild(ss')
+        where
+        ss' = ss { current = current', tlast = time }
+        (current',rebuild) = wrap(slides,current + ds)
+
+    wrap(slides,n)
+        | n < 1       = (nslides + n , remake)
+        | n > nslides = (n - nslides , remake)
+        | otherwise   = (n           , pass)
+        where
+        nslides = length(slides)
+        pass(s) = s
+
+    remake(ss@SS{..}) = ss
+      { slides = mkslides(randomNumbers(r))
+      , random = rs
+      }
       where
-      handleNav(c,s) = case event of
-          KeyPress "R" -> 1+length(s)
-          KeyPress "N" -> c+1
-          KeyPress " " ->  c+1
-          KeyPress "Enter" -> c+1
-          KeyPress "PageDown" -> c+1
-          KeyPress "P" -> c-1
-          KeyPress "PageUp" -> c-1
-          KeyPress "Backspace" -> c-1
-          PointerPress _ -> c+1
-          other -> c
-        
-      handlePan(c,s) = case event of
-          KeyPress "Left" -> over c moveleft s
-          KeyPress "Right" -> over c moveright s
-          KeyPress "Up" -> over c moveup s
-          KeyPress "Down" -> over c movedown s
-          KeyPress "A" -> over c moveleft s
-          KeyPress "D" -> over c moveright s
-          KeyPress "W" -> over c moveup s
-          KeyPress "S" -> over c movedown s
-          --KeyPress key -> (0,[messages [key]])
-          other -> s
-          where
-          moveleft(p)  = translated(p,-1, 0)
-          moveright(p) = translated(p, 1, 0)
-          moveup(p)    = translated(p, 0, 1)
-          movedown(p)  = translated(p, 0,-1)
-          over n f slides = [ if i == n then f s else s
-                            | s <- slides
-                            | i <- [1..]
-                            ]
-
-      mayHandleEvent(ss) = wrap(handleEvent(ss))
-          
-      handleEvent(ss@SS{..}) = ss
-          { current = nextCurrent
-          , tlast = time
-          , slides = handlePan(current,slides)
-          }
-          where
-          nextCurrent = handleNav(current,slides)
-          
-      remake(ss@SS{..}) = ss
-          { random = rs
-          , slides = mkslides(randomNumbers(r))
-          }
-          where
-          r:rs = random
-
-      realign(ss,newCurrent) = ss {current = newCurrent}
-      
-      wrap(ss@SS{..})
-          | current > nslides = wrap(realign(remake(ss),current-nslides))
-          | current < 1 = wrap(realign(remake(ss),current+nslides))
-          | otherwise = ss
-          where
-          nslides = length(slides)
-
+      r:rs = random
 
 -------------------------------------------------------------------------------
 -- Animation Helpers
