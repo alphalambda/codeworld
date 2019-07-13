@@ -97,7 +97,9 @@ install_packages() {
         run . sudo apt-get install -y patch
         run . sudo apt-get install -y autoconf
         run . sudo apt-get install -y automake
+        run . sudo apt-get install -y libtool
         run . sudo apt-get install -y libtinfo-dev
+	run . sudo apt-get install -y libtinfo5
         
         # Needed for codeworld-auth
         run . sudo apt-get install -y libssl-dev
@@ -216,16 +218,24 @@ install_ghc() {
     GHC_DIR=8.0.2
     GHC_VERSION=8.0.2
 
-    run $DOWNLOADS               wget http://downloads.haskell.org/~ghc/$GHC_DIR/ghc-$GHC_VERSION-$GHC_ARCH.tar.xz
-    run $BUILD                   tar xf $DOWNLOADS/ghc-$GHC_VERSION-$GHC_ARCH.tar.xz
-    run $BUILD/ghc-$GHC_VERSION  ./configure --prefix=$BUILD
-    run $BUILD/ghc-$GHC_VERSION  make install
+    if [ ! -f $BUILD/bin/ghc-$GHC_VERSION ]; then
+        if [ ! -f $DOWNLOADS/ghc-$GHC_VERSION-$GHC_ARCH.tar.xz ]; then
+            run $DOWNLOADS               wget http://downloads.haskell.org/~ghc/$GHC_DIR/ghc-$GHC_VERSION-$GHC_ARCH.tar.xz
+        fi 
+        run $BUILD rm -rf bin lib share ghc-$GHC_VERSION
+        run $BUILD                   tar xf $DOWNLOADS/ghc-$GHC_VERSION-$GHC_ARCH.tar.xz
+        run $BUILD/ghc-$GHC_VERSION  ./configure --prefix=$BUILD
+        run $BUILD/ghc-$GHC_VERSION  make install
+    fi
 
     run $BUILD                   rm -rf ghc-$GHC_VERSION
     
     # Now install the patched GHC, built from source.
     
-    run $DOWNLOADS               wget https://downloads.haskell.org/~ghc/$GHC_DIR/ghc-$GHC_VERSION-src.tar.xz
+    if [ ! -f $DOWNLOADS/ghc-$GHC_VERSION-src.tar.xz ]; then
+        run $DOWNLOADS               wget https://downloads.haskell.org/~ghc/$GHC_DIR/ghc-$GHC_VERSION-src.tar.xz
+    fi
+
     run $BUILD                   tar xf $DOWNLOADS/ghc-$GHC_VERSION-src.tar.xz
     run .                        patch -p0 -u -d $BUILD < ghc-artifacts/ghc-$GHC_VERSION-default-main.patch
     run .                        cp ghc-artifacts/build.mk $BUILD/ghc-$GHC_VERSION/mk/build.mk
@@ -281,6 +291,10 @@ delete_downloads() {
 #exit 0
 
 if [ ! -f $BUILD/.install_packages ]; then
+    remove_old_build
+fi
+
+if [ ! -f $BUILD/.install_packages ]; then
     install_packages
     touch $BUILD/.install_packages
 fi
@@ -310,7 +324,7 @@ if [ ! -f $BUILD/.install_codemirror ]; then
     touch $BUILD/.install_codemirror
 fi
 
-delete_downloads
+#delete_downloads
 
 # Go ahead and run a first build, which installs more local packages.
 # ./build.sh
