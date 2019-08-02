@@ -29,6 +29,7 @@ Library
                        Extras.Animation,
                        Extras.Game,
                        Extras.Geometry,
+                       Extras.Queue,
                        Extras.SnapBlock,
                        Extras.Do,
                        Extras.SnapBlock.Tangram,
