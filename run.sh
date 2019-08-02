@@ -16,7 +16,8 @@
 
 source base.sh
 
-run . rm -rf data/*/build
+rm -rf data/base/* data/codeworld/build/*
+#run . rm -rf data/*/build
 
 fuser -k -n tcp 8080
 fuser -k -n tcp 9160
