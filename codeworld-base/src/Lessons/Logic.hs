@@ -14,6 +14,7 @@ module Lessons.Logic(
     , translated, rotated, dilated, scaled, colored
     , (&), pictures, blank
     , (<>)
+    , Number
     ) where
 
 import Prelude
