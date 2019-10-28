@@ -288,7 +288,10 @@ delete_downloads() {
 }
 
 #remove_old_build
-#exit 0
+
+install_packages
+
+exit 0
 
 if [ ! -f $BUILD/.install_packages ]; then
     remove_old_build
