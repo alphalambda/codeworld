@@ -149,6 +149,7 @@ module Internal.Exports
     -- * Locally fixed identifiers
     , concatenated
     , truncated
+    , merged
     ) where
 
 import "base" Prelude (IO)
@@ -170,3 +171,6 @@ concatenated = concatenation
 
 truncated :: Number -> Number
 truncated = truncation
+
+merged :: [Picture] -> Picture
+merged = pictures

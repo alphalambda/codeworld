@@ -41,6 +41,7 @@ Library
                        Extras.Colors,
                        Extras.Cw,
                        Extras.Op,
+                       Extras.Stamp,
                        Extras.Turtle,
                        Extras.Util,
                        Extras.Widget
