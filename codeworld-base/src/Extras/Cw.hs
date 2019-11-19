@@ -44,7 +44,7 @@ module Extras.Cw(
     -- * Drawing Trees
     , Tree, (-<), treeDepth, treeWidth, tree
     -- * New entry points
-    , slideshow, autoSlideshow
+    , slideshow, autoSlideshow, paginationOf
     -- * Entry points with randomization
     -- $randomIntro
     , randomDrawingOf, randomAnimationOf, randomSlideshow, randomAutoSlideshow
@@ -383,6 +383,16 @@ closedCurvePoints :: ([Point],Number) -> [Point]
 -------------------------------------------------------------------------------
 --- Layout
 -------------------------------------------------------------------------------
+
+-- | A driver that wraps `pageFromTexts` in a `slideshow`. Look at the example
+-- under `pageFromTexts` to see how this function is implemented. The inputs of
+-- this function are a list of lines of Text and the number of lines to
+-- show in a single page, which usually should be 40.
+paginationOf :: ([Text],Number) -> Program
+paginationOf(lines,num) = slideshow(pages)
+    where
+    pages = foreach(gs,pageFromTexts)
+    gs = groups(lines,num)
 
 -- | A picture that represents the given list of texts, so that each
 -- text in the list is shown in a separate line. Lines start at the
