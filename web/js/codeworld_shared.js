@@ -93,28 +93,26 @@ const hintBlacklist = [
     'thickPath',
     'text',
     'styledText',
-
-    // Old-style colors.
-    'White',
-    'Black',
-    'Gray',
-    'Grey',
-    'Red',
-    'Orange',
-    'Yellow',
-    'Green',
-    'Blue',
-    'Purple',
-    'Pink',
-    'Brown',
+    'collaborationOf',
+    'simulationOf',
+    'interactionOf',
+    'debugInteractionOf',
+    'debugSimulationOf',
     'cyan',
     'magenta',
     'azure',
     'chartreuse',
     'aquamarine',
     'violet',
-    'rose'
+    'rose',
+    'hue',
+    'saturation',
+    'luminosity',
+    'alpha'
 ];
+
+const VAR_OR_CON = /^[a-zA-Z_][A-Za-z_0-9']*$/;
+const QUALIFIER = /^[A-Z][A-Za-z_0-9']*[.]$/;
 
 function definePanelExtension() {
     CodeMirror.defineExtension('addPanel', function(node) {
@@ -126,7 +124,7 @@ function definePanelExtension() {
     });
 }
 
-// codeWorldSymbols is variable containing annotations and documentation
+// codeWorldSymbols is a variable containing annotations and documentation
 // of builtin and user-defined variables.
 // Expected format:
 // codeWorldSymbols = {
@@ -134,11 +132,25 @@ function definePanelExtension() {
 //     declaration: "codeWorldLogo :: Picture",
 //     symbolStart: 0,
 //     symbolEnd: 13,
+//     insertText: "codeWorldLogo",
 //     doc: "The CodeWorld logo."
 //   }
 // }
 window.codeWorldSymbols = {};
-window.codeWorldBuiltinSymbols = {};
+window.codeWorldModules = {
+    'Prelude': {}
+};
+window.codeWorldBuiltins = {
+    'program': {
+        declaration: 'program :: Program',
+        doc: 'Your program.',
+        symbolStart: 0,
+        symbolEnd: 7,
+        insertText: 'program'
+    }
+};
+
+window.alreadyReportedErrors = new Set();
 
 function getWordStart(word, line) {
     return line.indexOf(word);
@@ -157,17 +169,43 @@ function parseSymbolsFromCurrentCode() {
     const parseResults = {};
     let lineIndex = 0;
 
+    const imports = [];
+
     lines.forEach(line => {
         lineIndex++;
 
-        const docString = `Defined in your code on line ${ 
-            lineIndex.toString()}.`;
+        const importExp =
+            /^import\s+(qualified)?\s*([A-Z][A-Za-z0-9.']*)(\s+(as)\s+([A-Z][A-Za-z0-9.']*))?(\s+(hiding))?\s*([(]([^()]*|([(][^()]*[)])*)[)])?\s*$/;
+        if (importExp.test(line)) {
+            const match = importExp.exec(line);
+            const qualified = Boolean(match[1]);
+            const module = match[2];
+            const asName = match[5] !== undefined ? match[5] : module;
+            const hiding = Boolean(match[7]);
+            const importList = match[9] &&
+                match[9]
+                    .split(',')
+                    .map(s => s.trim())
+                    .map(s => /[(].*[)]/.test(s) ? s.substr(1, s.length - 2) : s);
+            imports.push({
+                module: module,
+                asName: asName,
+                qualified: qualified,
+                hiding: hiding,
+                importList: importList
+            });
+            return;
+        }
+
+        const docString = `Defined in your code on line ${lineIndex}.`;
+
         if (/^\w+\(.*/.test(line)) {
             // f(x, y) =
             const word = line.split('(')[0].trim();
             if (parseResults[word]) return;
             parseResults[word] = {
                 declaration: word,
+                insertText: word,
                 doc: docString
             };
         } else if (/^\S+\s*=/.test(line)) {
@@ -176,6 +214,7 @@ function parseSymbolsFromCurrentCode() {
             if (parseResults[word]) return;
             parseResults[word] = {
                 declaration: word,
+                insertText: word,
                 doc: docString
             };
         } else if (/^data\s.+/.test(line)) {
@@ -187,6 +226,7 @@ function parseSymbolsFromCurrentCode() {
                 declaration: line.slice(0, getWordEnd(word, line)),
                 symbolStart: getWordStart(word, line),
                 symbolEnd: getWordEnd(word, line),
+                insertText: word,
                 doc: docString
             };
         } else if (/^type\s.+/.test(line)) {
@@ -198,6 +238,7 @@ function parseSymbolsFromCurrentCode() {
                 declaration: line,
                 symbolStart: getWordStart(word, line),
                 symbolEnd: getWordEnd(word, line),
+                insertText: word,
                 doc: docString
             };
         } else if (/^\([^()]+\)\s*::/.test(line)) {
@@ -210,6 +251,7 @@ function parseSymbolsFromCurrentCode() {
                 declaration: line,
                 symbolStart: getWordStart(word, line),
                 symbolEnd: getWordEnd(word, line),
+                insertText: word,
                 doc: docString
             };
         } else if (/^\S+\s*::/.test(line)) {
@@ -221,19 +263,53 @@ function parseSymbolsFromCurrentCode() {
                 declaration: line,
                 symbolStart: getWordStart(word, line),
                 symbolEnd: getWordEnd(word, line),
+                insertText: word,
                 doc: docString
             };
         }
     });
+
+    if (!imports.find(i => i.module === 'Prelude')) {
+        imports.push({
+            module: 'Prelude',
+            asName: 'Prelude',
+            qualified: false,
+            hiding: false,
+            importList: undefined
+        });
+    }
+
     if (window.buildMode === 'codeworld') {
-        window.codeWorldSymbols = Object.assign({}, parseResults,
-            window.codeWorldBuiltinSymbols);
+        const symbols = Object.assign({}, window.codeWorldBuiltins);
+        for (const i of imports) {
+            if (i.module in window.codeWorldModules) {
+                for (const symbol in window.codeWorldModules[i.module]) {
+                    if (i.importList) {
+                        if (i.hiding && i.importList.includes(symbol)) continue;
+                        if (!i.hiding && !i.importList.includes(symbol)) continue;
+                    }
+                    symbols[`${i.asName}.${symbol}`] = window.codeWorldModules[i.module][symbol];
+                    if (!i.qualified) {
+                        symbols[symbol] = window.codeWorldModules[i.module][symbol];
+                    }
+                }
+                symbols[i.asName] = {
+                    declaration: `module ${i.asName}`,
+                    symbolStart: 7,
+                    symbolEnd: 7 + i.asName.length,
+                    insertText: `${i.asName}.`,
+                    module: true,
+                    doc: null
+                };
+            }
+        }
+        window.codeWorldSymbols = Object.assign(symbols, parseResults);
     } else {
         window.codeWorldSymbols = Object.assign({}, parseResults);
     }
 }
 
-function renderDeclaration(decl, keyword, keywordData, maxLen, argIndex = -1) {
+function renderDeclaration(decl, keywordData, maxLen, argIndex = -1) {
     let column = 0;
 
     function addSegment(text, isWord, isBold) {
@@ -278,7 +354,7 @@ function renderDeclaration(decl, keyword, keywordData, maxLen, argIndex = -1) {
         addSegment(keywordData.declaration.slice(0, keywordData.symbolStart));
     }
 
-    addSegment(keyword, true, false);
+    addSegment(keywordData.declaration.slice(keywordData.symbolStart, keywordData.symbolEnd), true, false);
 
     if (keywordData.symbolEnd < keywordData.declaration.length) {
         const leftover = keywordData.declaration.slice(keywordData.symbolEnd).replace(
@@ -296,7 +372,7 @@ function renderDeclaration(decl, keyword, keywordData, maxLen, argIndex = -1) {
             addSegment(head, false, false);
             for (let i = 0; i < tokens.length; i++) {
                 if (i > 0) addSegment(',', false, false);
-                addSegment(tokens[i], false, argIndex == i);
+                addSegment(tokens[i], false, argIndex === i);
             }
             addSegment(tail, false, false);
         } else {
@@ -306,19 +382,14 @@ function renderDeclaration(decl, keyword, keywordData, maxLen, argIndex = -1) {
     return decl;
 }
 
-function renderHover(keyword) {
+function renderHover(keywordData) {
+    if (!keywordData) return;
+
     const topDiv = document.createElement('div');
-
-    if (!window.codeWorldSymbols[keyword]) {
-        return;
-    }
-    topDiv.title = keyword;
-    const keywordData = window.codeWorldSymbols[keyword];
-
     const docDiv = document.createElement('div');
 
     const annotation = document.createElement('div');
-    renderDeclaration(annotation, keyword, keywordData, 9999);
+    renderDeclaration(annotation, keywordData, 9999);
     annotation.className = 'hover-decl';
     docDiv.appendChild(annotation);
 
@@ -339,71 +410,185 @@ function renderHover(keyword) {
 
 function onHover(cm, data, node) {
     if (data && data.token && data.token.string) {
+        const prefix = getQualifierPrefix(
+            cm, CodeMirror.Pos(data.token.state.line, data.token.start));
         const token_name = data.token.string;
         if (hintBlacklist.indexOf(token_name) === -1) {
-            return renderHover(token_name);
+            const info = window.codeWorldSymbols[prefix + token_name];
+            return renderHover(info);
         }
     }
+}
+
+function getQualifierPrefix(cm, pos) {
+    let prefix = '';
+    let start = pos.ch;
+    while (start > 1) {
+        let qtoken = cm.getTokenAt(CodeMirror.Pos(pos.line, start));
+        let qual = qtoken.string;
+        if (qtoken.string === '.') {
+            qtoken = cm.getTokenAt(CodeMirror.Pos(pos.line, qtoken.start));
+            qual = `${qtoken.string}.`;
+        }
+        if (!QUALIFIER.test(qual)) break;
+
+        prefix = qual + prefix;
+        start = qtoken.start;
+    }
+    return prefix;
+}
+
+function substitutionCost(a, b, fixedLen) {
+    const insertCost = 1;
+    const deleteCost = 1.5;
+    const transCost = 1;
+    const substCost = 1.5;
+    const caseCost = 0.1;
+
+    const d = Array(b.length + 1).fill().map(() => Array(a.length + 1));
+
+    function scale(i) {
+        return i >= fixedLen ? 10 : 100;
+    }
+
+    for (let i = 0; i <= a.length; i += 1) {
+        for (let j = 0; j <= b.length; j += 1) {
+            if (i === 0 && j === 0) {
+                d[j][i] = 0;
+                continue;
+            } else if (i === 0) {
+                d[j][i] = d[j - 1][i] + insertCost * scale(i);
+            } else if (j === 0) {
+                d[j][i] = d[j][i - 1] + deleteCost * scale(i - 1);
+            } else {
+                const replaceCost = a[i - 1] === b[j - 1] ? 0 :
+                    (a[i - 1].toLowerCase() === b[j - 1].toLowerCase() ? caseCost : substCost);
+
+                d[j][i] = Math.min(
+                    d[j][i - 1] + deleteCost * scale(i - 1),
+                    d[j - 1][i] + insertCost * scale(i),
+                    d[j - 1][i - 1] + replaceCost * scale(i - 1));
+                if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) {
+                    d[j][i] = Math.min(d[j][i], d[j - 2][i - 2] + transCost * scale(i - 2));
+                }
+            }
+        }
+    }
+
+    return d[b.length][a.length] + scale(fixedLen) * (a.length - b.length);
 }
 
 // Hints and hover tooltips
 function registerStandardHints(successFunc) {
     CodeMirror.registerHelper('hint', 'codeworld', cm => {
+        const deleteOldHintDocs = () => {
+            $('.hint-description').remove();
+        };
+
+        deleteOldHintDocs();
+
         const cur = cm.getCursor();
         const token = cm.getTokenAt(cur);
 
         // If the current token is whitespace, it can be split.
-        let term, from;
-        if (/^\s+$/.test(token.string)) {
+        let term = token.string.substr(0, cur.ch - token.start);
+        let from = CodeMirror.Pos(cur.line, token.start);
+
+        if (!VAR_OR_CON.test(term)) {
             term = '';
             from = cur;
-        } else {
-            term = token.string.substr(0, cur.ch - token.start);
-            from = CodeMirror.Pos(cur.line, token.start);
         }
 
-        const found = [];
+        const prefix = getQualifierPrefix(cm, from);
+
+        // The found collection is organized into three tiers:
+        //
+        // 1. Exact match for the current token.
+        // 2. Current token is a case-sensitive prefix.
+        // 3. Others, to be presented as fuzzy matches.
+        const found = [
+            [],
+            [],
+            []
+        ];
+
         const hints = Object.keys(window.codeWorldSymbols);
         for (let i = 0; i < hints.length; i++) {
             const hint = hints[i];
-            if (hint.startsWith(term)) {
-                found.push({
-                    text: hint,
-                    render: elem => {
-                        renderDeclaration(elem, hint,
-                            window.codeWorldSymbols[hint], 50);
+            const parts = hint.split(/\.(?=[^.]+$)/);
+            const hintPrefix = parts.length < 2 ? '' : (`${parts[0]}.`);
+            const hintIdent = parts.length < 2 ? hint : parts[1];
+            if (!VAR_OR_CON.test(hintIdent)) continue;
+            if (window.codeWorldSymbols[hint].module) {
+                if (hint.startsWith(prefix)) {
+                    const candidate = {
+                        text: window.codeWorldSymbols[hint].insertText.substr(prefix.length),
+                        details: window.codeWorldSymbols[hint],
+                        render: elem => {
+                            renderDeclaration(elem, window.codeWorldSymbols[hint], 50);
+                        }
+                    };
+                    if (hint === prefix + token.string) {
+                        found[0].push(candidate);
+                    } else if (hint.startsWith(prefix + term)) {
+                        found[1].push(candidate);
+                    } else {
+                        found[2].push(candidate);
                     }
-                });
+                }
+            } else if (hintPrefix === prefix) {
+                const candidate = {
+                    text: window.codeWorldSymbols[hint].insertText,
+                    details: window.codeWorldSymbols[hint],
+                    render: elem => {
+                        renderDeclaration(elem, window.codeWorldSymbols[hint], 50);
+                    }
+                };
+                if (hintIdent === token.string) {
+                    found[0].push(candidate);
+                } else if (hintIdent.startsWith(term)) {
+                    found[1].push(candidate);
+                } else {
+                    found[2].push(candidate);
+                }
             }
         }
 
-        found.sort((a, b) => {
-            function startsWithLetter(c) {
-                return /^[a-zA-Z].*/.test(c);
-            }
+        // If there's a chance to find an exact match, clear out the fuzzy matches
+        // so that the exact match is chosen.
+        if (found[0].length + found[1].length === 1) {
+            found[2] = [];
+        }
 
-            if (startsWithLetter(a.text) && !startsWithLetter(b.text)) {
-                return -1;
-            } else if (startsWithLetter(b.text) && !startsWithLetter(a.text)) {
-                return 1;
-            } else {
+        const options = found[0].concat(found[1]).concat(found[2]);
+        for (const candidate of options) {
+            candidate.cost = substitutionCost(token.string, candidate.text, term.length);
+        }
+
+        if (options.length > 0) {
+            options.sort((a, b) => {
+                if (a.cost < b.cost) return -1;
+                if (a.cost > b.cost) return 1;
                 return a.text.toLowerCase() < b.text.toLowerCase() ? -1 : 1;
+            });
+
+            let numGood;
+            for (numGood = 1; numGood < options.length; numGood++) {
+                if (numGood >= 16 && options[numGood].cost > 2 * options[0].cost + 50) break;
             }
-        });
+            const goodOptions = options.slice(0, numGood);
 
-        if (found.length > 0) {
             const data = {
-                list: found,
+                list: goodOptions,
                 from: from,
-                to: cur
-            };
-
-            const deleteOldHintDocs = () => {
-                $('.hint-description').remove();
+                to: VAR_OR_CON.test(term) ? CodeMirror.Pos(cur.line, token.end) : cur
             };
 
             CodeMirror.on(data, 'close', deleteOldHintDocs);
             CodeMirror.on(data, 'pick', deleteOldHintDocs);
+            CodeMirror.on(data, 'pick', completion => {
+                if (completion.details.module) cm.showHint();
+            });
 
             // Tracking of hint selection
             CodeMirror.on(
@@ -412,7 +597,7 @@ function registerStandardHints(successFunc) {
                     const hintsWidgetRect = elem.parentElement.getBoundingClientRect();
                     const doc = document.createElement('div');
                     deleteOldHintDocs();
-                    const hover = renderHover(selection.text);
+                    const hover = renderHover(selection.details);
                     if (hover) {
                         doc.className += 'hint-description';
                         doc.style.top = `${hintsWidgetRect.top}px`;
@@ -435,36 +620,36 @@ function registerStandardHints(successFunc) {
             lines = request.responseText.split('\n');
         }
 
-        const startLine = lines.indexOf('module Prelude') + 1;
-        let endLine = startLine;
-        while (endLine < lines.length) {
-            if (lines[endLine].startsWith('module ')) {
-                break;
-            }
-            endLine++;
-        }
-        lines = lines.slice(startLine, endLine);
-
         // Special case for "program", since it is morally a built-in name.
         window.codeworldKeywords['program'] = 'builtin';
 
-        window.codeWorldBuiltinSymbols['program'] = {
-            declaration: 'program :: Program',
-            doc: 'Your program.',
-            symbolStart: 0,
-            symbolEnd: 7
-        };
-
+        window.codeWorldModules = {};
+        let module = null;
         let doc = '';
         lines.forEach(line => {
-            if (line.startsWith('type Program')) {
+            if (line.startsWith('module ')) {
+                module = line.substr(7);
+                if (!window.codeWorldModules[module]) {
+                    window.codeWorldModules[module] = {};
+                }
+                doc = '';
+                return;
+            }
+
+            if (!module) {
+                // Ignore anything outside of a module.
+                doc = '';
+                return;
+            }
+
+            if (module === 'Prelude' && line.startsWith('type Program')) {
                 // We must intervene to hide the IO type.
                 line = 'data Program';
-            } else if (line.startsWith('type Truth')) {
+            } else if (module === 'Prelude' && line.startsWith('type Truth')) {
                 line = 'data Truth';
-            } else if (line.startsWith('True ::')) {
+            } else if (module === 'Prelude' && line.startsWith('True ::')) {
                 line = 'True :: Truth';
-            } else if (line.startsWith('False ::')) {
+            } else if (module === 'Prelude' && line.startsWith('False ::')) {
                 line = 'False :: Truth';
             } else if (line.startsWith('newtype ')) {
                 // Hide the distinction between newtype and data.
@@ -526,26 +711,35 @@ function registerStandardHints(successFunc) {
                     wordEnd--;
                 }
 
-                const word = line.substr(wordStart, wordEnd -
-                    wordStart);
-                if (hintBlacklist.indexOf(word) < 0) {
-                    window.codeWorldBuiltinSymbols[word] = {
+                const word = line.substr(wordStart, wordEnd - wordStart);
+                let isBlacklisted = false;
+                if (module === 'Prelude') {
+                    if (hintBlacklist.indexOf(word) >= 0) isBlacklisted = true;
+                } else {
+                    if (['RGB', 'HSL', 'RGBA'].indexOf(word) >= 0) isBlacklisted = true;
+                }
+                if (!isBlacklisted) {
+                    window.codeWorldModules[module][word] = {
                         declaration: line,
                         symbolStart: wordStart,
-                        symbolEnd: wordEnd
+                        symbolEnd: wordEnd,
+                        insertText: word
                     };
                     if (doc) {
-                        window.codeWorldBuiltinSymbols[word].doc = doc;
+                        window.codeWorldModules[module][word].doc = doc;
                     }
                 }
 
-                if (hintBlacklist.indexOf(word) >= 0) {
-                    window.codeworldKeywords[word] = 'deprecated';
-                } else if (/^[A-Z:]/.test(word)) {
-                    window.codeworldKeywords[word] = 'builtin-2';
-                } else {
-                    window.codeworldKeywords[word] = 'builtin';
+                if (module === 'Prelude') {
+                    if (hintBlacklist.indexOf(word) >= 0) {
+                        window.codeworldKeywords[word] = 'deprecated';
+                    } else if (/^[A-Z:]/.test(word)) {
+                        window.codeworldKeywords[word] = 'builtin-2';
+                    } else {
+                        window.codeworldKeywords[word] = 'builtin';
+                    }
                 }
+
                 doc = '';
             }
         });
@@ -563,7 +757,10 @@ function signin() {
 }
 
 function signout() {
-    if (window.auth2) window.auth2.signOut();
+    warnIfUnsaved(() => {
+        clearWorkspace();
+        if (window.auth2) window.auth2.signOut();
+    });
 }
 
 function signedIn() {
@@ -612,7 +809,7 @@ const Auth = (() => {
                         sendHttpAuth: sendHttpAuth
                     }, gapi.auth2.init({
                         client_id: clientId,
-                        scope: 'profile',
+                        scope: 'openid',
                         fetch_basic_profile: false
                     }));
 
@@ -626,19 +823,13 @@ const Auth = (() => {
         window.auth2 = auth;
         window.auth2.currentUser.listen(signinCallback);
 
-        if (window.auth2.isSignedIn.get()) {
-            window.auth2.signIn();
-        }
-
-        discoverProjects('', 0);
-        updateUI();
+        discoverProjects('');
     }
 
     function onAuthDisabled() {
         window.auth2 = null;
         document.getElementById('signin').style.display = 'none';
-        discoverProjects('', 0);
-        updateUI();
+        discoverProjects('');
     }
 
     mine.init = () =>
@@ -680,68 +871,72 @@ function withClientId(f) {
     });
 }
 
-function discoverProjects_(path, buildMode, index) {
-    if (!signedIn()) {
-        window.allProjectNames = window.openProjectName ? [
-            [window.openProjectName]
-        ] : [
-            []
-        ];
-        window.allFolderNames = [
-            []
-        ];
-        window.nestedDirs = [''];
-        cancelMove();
+function loadSubTree(node, callback) {
+    if (signedIn() && node === $('#directoryTree').tree('getTree')) {
+        // Root node already loaded
+        if (callback) callback();
+    } else if (signedIn() && node.type === 'directory') {
+        const data = new FormData();
+        data.append('mode', window.projectEnv);
+        data.append('path', getNearestDirectory(node));
+        showLoadingAnimation(node);
+        sendHttp('POST', 'listFolder', data, request => {
+            if (request.status === 200) {
+                $('#directoryTree').tree(
+                    'loadData',
+                    JSON.parse(request.responseText).sort(
+                        (a, b) => {
+                            return a.index > b.index;
+                        }
+                    ),
+                    node
+                );
+                $('#directoryTree').tree('openNode', node);
+                if (callback) callback();
+            }
+            updateUI();
+            hideLoadingAnimation();
+        });
+    } else {
         updateUI();
-        return;
     }
-
-    const data = new FormData();
-    data.append('mode', buildMode);
-    data.append('path', path);
-
-    sendHttp('POST', 'listFolder', data, request => {
-        if (request.status === 200) {
-            window.loadingDir = false;
-            const allContents = JSON.parse(request.responseText);
-            window.allProjectNames[index] = allContents['files'];
-            window.allFolderNames[index] = allContents['dirs'];
-        }
-        updateNavBar();
-    });
-
-    window.loadingDir = true;
 }
 
-function moveHere_(path, buildMode, successFunc) {
+function discoverProjects(path) {
+    if (signedIn()) {
+        const data = new FormData();
+        data.append('mode', window.projectEnv);
+        data.append('path', path);
+        showLoadingAnimation();
+        sendHttp('POST', 'listFolder', data, request => {
+            if (request.status === 200) {
+                hideLoadingAnimation();
+                $('#directoryTree').tree(
+                    'loadData',
+                    JSON.parse(request.responseText).sort(
+                        (a, b) => {
+                            return a.index > b.index;
+                        }
+                    ));
+            }
+            updateUI();
+        });
+    } else updateUI();
+}
+
+function moveDirTreeNode(moveFrom, moveTo, isFile, name, buildMode, successFunc) {
     if (!signedIn()) {
         sweetAlert('Oops!', 'You must sign in before moving.', 'error');
-        cancelMove();
         return;
     }
-
-    if (!window.move) {
-        sweetAlert('Oops!', 'You must first select something to move.',
-            'error');
-        cancelMove();
-        return;
-    }
-
     const data = new FormData();
     data.append('mode', buildMode);
-    data.append('moveTo', path);
-    data.append('moveFrom', window.move.path);
-    if (window.move.file) {
+    data.append('moveTo', moveTo);
+    data.append('moveFrom', moveFrom);
+    if (isFile) {
         data.append('isFile', 'true');
-        data.append('name', window.move.file);
+        data.append('name', name);
     } else {
-        if (path.startsWith(window.move.path)) {
-            sweetAlert('Oops!',
-                'You cannot move a path to a location inside itself.',
-                'error');
-            cancelMove();
-            return;
-        }
         data.append('isFile', 'false');
     }
 
@@ -750,19 +945,13 @@ function moveHere_(path, buildMode, successFunc) {
             sweetAlert('Oops',
                 'Could not move your project! Please try again.',
                 'error');
-            cancelMove();
             return;
         }
         successFunc();
     });
 }
 
-function cancelMove() {
-    window.move = null;
-    updateUI();
-}
-
-function warnIfUnsaved(action, showAnother) {
+function warnIfUnsaved(action) {
     if (isEditorClean()) {
         action();
     } else {
@@ -774,15 +963,14 @@ function warnIfUnsaved(action, showAnother) {
             type: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#DD6B55',
-            confirmButtonText: 'Yes, discard my changes!',
-            closeOnConfirm: !showAnother
+            confirmButtonText: 'Yes, discard my changes!'
         }).then(result => {
-            if (result.value) action();
+            if (result && result.value) action();
         });
     }
 }
 
-function saveProjectAs() {
+function saveProjectAsBase(successFunc) {
     if (!signedIn()) {
         sweetAlert('Oops!', 'You must sign in to save files.', 'error');
         updateUI();
@@ -790,9 +978,12 @@ function saveProjectAs() {
     }
 
     let text;
-    if (window.nestedDirs.length > 1) {
+    let pathToRoot = '';
+    const selected = $('#directoryTree').tree('getSelectedNode');
+    if (selected) pathToRoot = pathToRootDir(selected);
+    if (pathToRoot !== '') {
         text = `Enter a name for your project in folder <b>${ 
-            $('<div>').text(window.nestedDirs.slice(1).join('/')).html().replace(/ /g,
+            $('<div>').text(getNearestDirectory()).html().replace(/ /g,
                 '&nbsp;') 
         }:`;
     } else {
@@ -815,34 +1006,46 @@ function saveProjectAs() {
         showCancelButton: true,
         closeOnConfirm: false
     }).then(result => {
-        if (result.value) {
-            saveProjectBase(window.nestedDirs.slice(1).join('/'), result.value);
+        const parent = getNearestDirectory_();
+
+        function localSuccessFunc() {
+            const matches = parent.children.filter(n => n.name === result.value && n.type === 'project');
+            let node;
+            if (matches.length === 0) {
+                node = $('#directoryTree').tree(
+                    'appendNode', {
+                        name: result.value,
+                        type: 'project',
+                        data: JSON.stringify(getCurrentProject())
+                    },
+                    parent
+                );
+            } else {
+                node = matches[0];
+            }
+
+            $('#directoryTree').tree('selectNode', node);
+            updateChildrenIndexes(parent);
+            successFunc(result.value);
+        }
+        if (result && result.value) {
+            saveProjectBase(
+                getNearestDirectory(),
+                result.value,
+                window.projectEnv,
+                localSuccessFunc);
         }
     });
 }
 
-function saveProject() {
+function saveProjectBase(path, projectName, mode, successFunc) {
     if (!signedIn()) {
         sweetAlert('Oops!', 'You must sign in to save files.', 'error');
         updateUI();
         return;
     }
 
-    if (window.openProjectName) {
-        saveProjectBase(window.nestedDirs.slice(1).join('/'), window.openProjectName);
-    } else {
-        saveProjectAs();
-    }
-}
-
-function saveProjectBase_(path, projectName, mode, successFunc) {
     if (!projectName) return;
-
-    if (!signedIn()) {
-        sweetAlert('Oops!', 'You must sign in to save files.', 'error');
-        updateUI();
-        return;
-    }
 
     function go() {
         sweetAlert({
@@ -872,18 +1075,16 @@ function saveProjectBase_(path, projectName, mode, successFunc) {
                     'error');
                 return;
             }
-
             successFunc();
-            cancelMove();
             updateUI();
-
-            if (window.allProjectNames[window.allProjectNames.length - 1].indexOf(projectName) === -1) {
-                discoverProjects(path, window.allProjectNames.length - 1);
-            }
         });
     }
 
-    if (window.allProjectNames[window.allProjectNames.length - 1].indexOf(projectName) === -1 || projectName === window.openProjectName) {
+    if (projectName === window.openProjectName ||
+        getNearestDirectory_().children.filter((n) => {
+            return n.name === projectName && n.type === 'project';
+        }).length === 0
+    ) {
         go();
     } else {
         const msg = `${'Are you sure you want to save over another project?\n\n' +
@@ -897,7 +1098,7 @@ function saveProjectBase_(path, projectName, mode, successFunc) {
             confirmButtonColor: '#DD6B55',
             confirmButtonText: 'Yes, overwrite it!'
         }).then(result => {
-            if (result.value) go();
+            if (result && result.value) go();
         });
     }
 }
@@ -913,7 +1114,7 @@ function deleteProject_(path, buildMode, successFunc) {
 
     const msg =
         'Deleting a project will throw away all work, and cannot be undone. ' +
-        'Are you sure?';
+        `Are you sure you want to delete ${window.openProjectName}?`;
 
     sweetAlert({
         title: Alert.title('Warning'),
@@ -923,7 +1124,7 @@ function deleteProject_(path, buildMode, successFunc) {
         confirmButtonColor: '#DD6B55',
         confirmButtonText: 'Yes, delete it!'
     }).then(result => {
-        if (!result.value) {
+        if (result.dismiss === sweetAlert.DismissReason.cancel || result.dismiss === sweetAlert.DismissReason.backdrop) {
             return;
         }
 
@@ -935,8 +1136,9 @@ function deleteProject_(path, buildMode, successFunc) {
         sendHttp('POST', 'deleteProject', data, request => {
             if (request.status === 200) {
                 successFunc();
-                discoverProjects(path, window.allProjectNames.length -
-                    1);
+                const node = $('#directoryTree').tree('getSelectedNode');
+                $('#directoryTree').tree('removeNode', node);
+                updateUI();
             }
         });
     });
@@ -964,7 +1166,7 @@ function deleteFolder_(path, buildMode, successFunc) {
         confirmButtonColor: '#DD6B55',
         confirmButtonText: 'Yes, delete it!'
     }).then(result => {
-        if (!result.value) {
+        if (result.dismiss === sweetAlert.DismissReason.cancel || result.dismiss === sweetAlert.DismissReason.backdrop) {
             return;
         }
 
@@ -974,11 +1176,10 @@ function deleteFolder_(path, buildMode, successFunc) {
 
         sendHttp('POST', 'deleteFolder', data, request => {
             if (request.status === 200) {
+                const node = $('#directoryTree').tree('getSelectedNode');
+                $('#directoryTree').tree('removeNode', node);
                 successFunc();
-                window.nestedDirs.pop();
-                window.allProjectNames.pop();
-                window.allFolderNames.pop();
-                discoverProjects(window.nestedDirs.slice(1).join('/'), window.allProjectNames.length - 1);
+                updateUI();
             }
         });
     });
@@ -1000,8 +1201,7 @@ function createFolder(path, buildMode, successFunc) {
             input: 'text',
             inputValue: '',
             confirmButtonText: 'Create',
-            showCancelButton: true,
-            closeOnConfirm: false
+            showCancelButton: true
         }).then(result => {
             if (!result.value) {
                 return;
@@ -1023,46 +1223,63 @@ function createFolder(path, buildMode, successFunc) {
                         'error');
                     return;
                 }
-
-                window.allFolderNames[window.allFolderNames.length - 1].push(result.value);
-                window.nestedDirs.push(result.value);
-                window.allFolderNames.push([]);
-                window.allProjectNames.push([]);
                 successFunc();
-                updateNavBar();
+                let node = $('#directoryTree').tree('getSelectedNode');
+                if (!node) node = $('#directoryTree').tree('getTree');
+                if (node.type !== 'directory') node = node.parent;
+                $('#directoryTree').tree(
+                    'appendNode', {
+                        name: result.value,
+                        type: 'directory',
+                        children: []
+                    },
+                    node
+                );
+                updateChildrenIndexes(node);
             });
         });
-    }, true);
+    });
 }
 
-function loadProject_(index, name, buildMode, successFunc) {
+function loadProject_(path, name, buildMode, successFunc) {
+    if (!signedIn()) {
+        sweetAlert('Oops!', 'You must sign in to open projects.',
+            'error');
+        updateUI();
+        return;
+    }
 
-    warnIfUnsaved(() => {
-        if (!signedIn()) {
-            sweetAlert('Oops!', 'You must sign in to open projects.',
-                'error');
+    sweetAlert({
+        title: Alert.title(`Loading ${name} ...`),
+        text: 'Please wait.',
+        showConfirmButton: false,
+        showCancelButton: false,
+        showCloseButton: false,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        allowEnterKey: false
+    });
+
+    clearCode();
+
+    const data = new FormData();
+    data.append('name', name);
+    data.append('mode', buildMode);
+    data.append('path', path);
+
+    sendHttp('POST', 'loadProject', data, request => {
+        sweetAlert.close();
+        if (request.status === 200) {
+            const project = JSON.parse(request.responseText);
+            successFunc(project);
             updateUI();
+        } else {
+            sweetAlert('Oops!',
+                'Could not load the project!!!  Please try again.',
+                'error');
             return;
         }
-
-        const data = new FormData();
-        data.append('name', name);
-        data.append('mode', buildMode);
-        data.append('path', window.nestedDirs.slice(1, index + 1).join('/'));
-
-        sendHttp('POST', 'loadProject', data, request => {
-            if (request.status === 200) {
-                const project = JSON.parse(request.responseText);
-
-                successFunc(project);
-                window.nestedDirs = window.nestedDirs.slice(0, index + 1);
-                window.allProjectNames = window.allProjectNames.slice(0, index + 1);
-                window.allFolderNames = window.allFolderNames.slice(0, index + 1);
-                cancelMove();
-                updateUI();
-            }
-        });
-    }, false);
+    });
 }
 
 function share() {
@@ -1106,7 +1323,7 @@ function share() {
             cancelButtonText: 'Done',
             animation: 'slide-from-bottom'
         }).then(result => {
-            if (result.value) {
+            if (result && result.value) {
                 offerSource = !offerSource;
                 go();
             }
@@ -1124,7 +1341,7 @@ function share() {
                 showConfirmButton: true,
                 showCancelButton: true
             }).then(result => {
-                if (result.value) {
+                if (result && result.value) {
                     compile();
                 } else {
                     go();
@@ -1137,32 +1354,23 @@ function share() {
     go();
 }
 
-function inspect() {
-    document.getElementById('runner').contentWindow.toggleDebugMode();
-    cancelMove();
-    updateUI();
-}
-
 function shareFolder_(mode) {
     if (!signedIn()) {
         sweetAlert('Oops!', 'You must sign in to share your folder.', 'error');
         updateUI();
         return;
     }
-    if (window.nestedDirs.length === 1 || window.openProjectName) {
+    if (!getNearestDirectory() || window.openProjectName) {
         sweetAlert('Oops!', 'You must select a folder to share!', 'error');
         updateUI();
         return;
     }
 
-    const folderName = window.nestedDirs.slice(-1).pop()
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
+    const folderName = Html.encode(getNearestDirectory_().name);
 
     const data = new FormData();
     data.append('mode', mode);
-    data.append('path', window.nestedDirs.slice(1).join('/'));
+    data.append('path', getNearestDirectory());
 
     sendHttp('POST', 'shareFolder', data, request => {
         if (request.status !== 200) {
@@ -1209,7 +1417,7 @@ function shareFolder_(mode) {
                 cancelButtonText: 'Done',
                 animation: 'slide-from-bottom'
             }).then(result => {
-                if (result.value) {
+                if (result && result.value) {
                     gallery = !gallery;
                     go();
                 }
@@ -1225,14 +1433,11 @@ function preFormatMessage(msg) {
         msg = msg.replace(/(\r\n|[^\x08])\x08/g, '');
     }
 
-    msg = msg
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
+    msg = Html.encode(msg)
         .replace(/program\.hs:(\d+):((\d+)(-\d+)?)/g,
-            '<a href="#" onclick="goto($1, $3);">Line $1, Column $2</a>')
+            '<a href="#" onclick="goto($1, $3); return false;">Line $1, Column $2</a>')
         .replace(/program\.hs:\((\d+),(\d+)\)-\((\d+),(\d+)\)/g,
-            '<a href="#" onclick="goto($1, $2);">Line $1-$3, Column $2-$4</a>');
+            '<a href="#" onclick="goto($1, $2); return false;">Line $1-$3, Column $2-$4</a>');
     return msg;
 }
 
@@ -1286,19 +1491,29 @@ function printMessage(type, message) {
     }
 
     if (type === 'error' || type === 'warning') {
-        const reportLink = document.createElement('a');
-        reportLink.setAttribute('href', '#');
-        reportLink.classList.add('report-unhelpful');
-        reportLink.onclick = event => sendUnhelpfulReport(event, message);
-        reportLink.innerText = 'Not helpful?';
-        firstLine.appendChild(reportLink);
+        if (!window.alreadyReportedErrors.has(scrubError(message))) {
+            const reportLink = document.createElement('a');
+            reportLink.setAttribute('href', '#');
+            reportLink.classList.add('report-unhelpful');
+            reportLink.onclick = event => sendUnhelpfulReport(event, message, reportLink);
+            reportLink.innerText = 'Not helpful?';
+            firstLine.appendChild(reportLink);
+        }
     }
 
     outputDiv.appendChild(box);
     outputDiv.scrollTop = outputDiv.scrollHeight;
 }
 
-function sendUnhelpfulReport(event, message) {
+function sendUnhelpfulReport(event, message, reportLink) {
+    if (window.alreadyReportedErrors.has(scrubError(message))) {
+        sweetAlert({
+            type: 'info',
+            text: 'You have already reported this message.  Thank you for your feedback.'
+        });
+        reportLink.style.display = 'none';
+        return;
+    }
     sweetAlert({
         title: Alert.title('Report unhelpful message:', 'mdi-flag-variant'),
         text: 'The report will include your code.',
@@ -1310,17 +1525,27 @@ function sendUnhelpfulReport(event, message) {
         if (!result || result.dismiss !== sweetAlert.DismissReason.confirm) return;
 
         const data = new FormData();
-        let report = window.location.href;
-        if (result.value) report += '\n' + result.value;
-        report += '\n' + message;
+        data.append('title', 'User-reported unhelpful error message');
+        data.append('label', 'error-message');
+
+        let report = `**Program:** ${window.location.href}`;
+        if (result.value) report += `\n\n**Comment:**\n\n${result.value}`;
+        report += `\n\n**Message:**\n\n${message.replace(/^/gm, '    ')}`;
         data.append('message', report);
         sendHttp('POST', 'log', data);
         sweetAlert({
             type: 'success',
             text: 'Thank you for your feedback.'
         });
+
+        reportLink.style.display = 'none';
+        window.alreadyReportedErrors.add(scrubError(message));
     });
     event.preventDefault();
+}
+
+function scrubError(msg) {
+    return msg.replace(/program[.]hs:[0-9:-]*/g, '(loc)');
 }
 
 function clearMessages() {
@@ -1332,4 +1557,304 @@ function clearMessages() {
 function markFailed() {
     const outputDiv = document.getElementById('message');
     outputDiv.classList.add('error');
+}
+
+// Get path to root dir in format root/sub1/sub2/etc
+// starting from parent.
+function pathToRootDir(nodeInit) {
+    let node = Object.assign(nodeInit);
+    const path = [];
+    while (node.parent && node.parent.name !== '') {
+        node = node.parent;
+        path.push(node.name);
+    }
+    path.reverse();
+    return path.join('/');
+}
+
+function initDirectoryTree() {
+    $('#directoryTree').tree({
+        data: [],
+        dragAndDrop: true,
+        keyboardSupport: false,
+        onCanSelectNode: (node) => {
+            if (node.type === 'loadNotification') return false;
+            return true;
+        },
+        onCanMove: (node) => {
+            if (node.type === 'loadNotification') return false;
+            return true;
+        },
+        onCanMoveTo: (moving_node, target_node, position) => {
+            // Forbid move inside project node,
+            // but allow to move before and after
+            if (target_node.type === 'project' && position === 'inside') return false;
+            if (target_node.type === 'loadNotification') return false;
+            return true;
+        },
+        closedIcon: $('<i class="mdi mdi-18px mdi-chevron-right"></i>'),
+        openedIcon: $('<i class="mdi mdi-18px mdi-chevron-down"></i>'),
+        onCreateLi: function(node, $li) {
+            const titleElem = $li.find('.jqtree-element .jqtree-title');
+            if (node.type === 'directory' && node.is_open) {
+                titleElem.before(
+                    $('<i class="mdi mdi-18px mdi-folder-open"></i>')
+                );
+            } else if (node.type === 'directory') {
+                titleElem.before(
+                    $('<i class="mdi mdi-18px mdi-folder"></i>')
+                );
+            } else if (node.type === 'loadNotification') {
+                titleElem.before(
+                    $('<div style="float: left" class="loader"></div>')
+                );
+            } else if (node.type === 'project') {
+                const asterisk = $('<i class="unsaved-changes"></i>');
+                asterisk.css('display', 'none');
+                titleElem.before(
+                    $('<i class="mdi mdi-18px mdi-cube"></i>')
+                );
+                titleElem.after(asterisk);
+            }
+        }
+    });
+    $('#directoryTree').on(
+        'tree.move',
+        (event) => {
+            event.preventDefault();
+            warnIfUnsaved(() => {
+                if (!signedIn()) {
+                    sweetAlert('Oops!',
+                        'You must sign in to move this project or folder.',
+                        'error');
+                    updateUI();
+                    return;
+                }
+                const movedNode = event.move_info.moved_node;
+                const isFile = movedNode.type === 'project';
+                let fromPath, name;
+                fromPath = pathToRootDir(movedNode);
+                if (isFile) {
+                    name = movedNode.name;
+                } else if (fromPath) {
+                    fromPath = [fromPath, movedNode.name].join('/');
+                } else {
+                    fromPath = movedNode.name;
+                }
+                const haveChildWithSameNameAndType = (movedNode, toNode) => {
+                    // check if target node have child node
+                    // which have same name and type as moving node
+                    // and not equals to moving node
+                    return toNode.children.filter((ch) => {
+                        return ch.type === movedNode.type &&
+                            ch.name === movedNode.name;
+                    }).length !== 0;
+                };
+                let toNode = event.move_info.target_node;
+                const position = event.move_info.position;
+                if (position === 'before' || position === 'after') {
+                    toNode = toNode.parent;
+                }
+                if (event.move_info.previous_parent === toNode) {
+                    // Reordering in same directory
+                    event.move_info.do_move();
+                    updateChildrenIndexes(toNode);
+                    return;
+                }
+                // Load content of directory before move something inside
+                loadSubTree(toNode, () => {
+                    let toPath = pathToRootDir(toNode);
+                    if (toPath) {
+                        toPath = `${toPath}/${toNode.name}`;
+                    } else {
+                        toPath = toNode.name;
+                    }
+                    if (haveChildWithSameNameAndType(movedNode, toNode)) {
+                        // Replacement of existing project
+                        let msg, confirmText;
+                        if (movedNode.type === 'project') {
+                            msg = `${'Are you sure you want to save over another project?\n\n' +
+                            'The previous contents of '}${name 
+                            } will be permanently destroyed!`;
+                            confirmText = 'Yes, overwrite it!';
+                        } else {
+                            msg = 'Are you sure you want to merge content of these directories?';
+                            confirmText = 'Yes, merge them!';
+                        }
+
+                        sweetAlert({
+                            title: Alert.title('Warning'),
+                            text: msg,
+                            type: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#DD6B55',
+                            confirmButtonText: confirmText
+                        }).then((result) => {
+                            if (result && result.value) {
+                                moveDirTreeNode(fromPath, toPath, isFile, name, window.projectEnv, () => {
+                                    toNode.children = toNode.children.filter((n) => {
+                                        return movedNode === n ||
+                                            n.name !== movedNode.name || n.type !== movedNode.type;
+                                    });
+                                    event.move_info.do_move();
+                                    updateChildrenIndexes(toNode);
+                                    if (movedNode.type === 'directory') {
+                                        loadSubTree(movedNode);
+                                        clearCode();
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        // Regular moving
+                        moveDirTreeNode(fromPath, toPath, isFile, name, window.projectEnv, () => {
+                            event.move_info.do_move();
+                            updateChildrenIndexes(toNode);
+                        });
+                    }
+                });
+            });
+        });
+    $('#directoryTree').on(
+        'tree.open',
+        (event) => {
+            const folderIcon = event.node.element.getElementsByClassName('mdi-folder')[0];
+            if (folderIcon) {
+                folderIcon.classList.replace('mdi-folder', 'mdi-folder-open');
+            }
+        }
+    );
+    $('#directoryTree').on(
+        'tree.close',
+        (event) => {
+            const folderIcon = event.node.element.getElementsByClassName('mdi-folder-open')[0];
+            if (folderIcon) {
+                folderIcon.classList.replace('mdi-folder-open', 'mdi-folder');
+            }
+        }
+    );
+    $('#directoryTree').on(
+        'tree.click',
+        (event) => {
+            event.preventDefault();
+            // Deselection of selected project. Cancel it and do nothing.
+            if (event.node.type === 'project' && $('#directoryTree').tree('isNodeSelected', event.node)) {
+                return;
+            }
+            warnIfUnsaved(() => {
+                if (event.node.type === 'project') {
+                    const node = event.node;
+                    const path = pathToRootDir(node);
+                    window.openProjectName = node.name;
+                    loadProject(node.name, path);
+                    $('#directoryTree').tree('selectNode', event.node);
+                } else if (event.node.type === 'directory') {
+                    if (event.node.children.length === 0) {
+                        loadSubTree(event.node);
+                    }
+                    clearCode();
+                    $('#directoryTree').tree('selectNode', event.node);
+                }
+            });
+            updateUI();
+        }
+    );
+}
+
+// Get directory nearest to selected node, or root if there is no selection
+function getNearestDirectory_(node) {
+    if (node) {
+        const isdir = node.type === 'directory';
+        const haveParent = Boolean(node.parent);
+        if (isdir) {
+            return node;
+        } else if (haveParent) {
+            return node.parent;
+        }
+        // root node
+        return node;
+    }
+    const selected = $('#directoryTree').tree('getSelectedNode');
+    if (!selected) {
+        // nearest directory is root
+        return $('#directoryTree').tree('getTree');
+    } else if (selected.type === 'project') {
+        return selected.parent;
+    } else if (selected.type === 'directory') {
+        return selected;
+    }
+}
+
+function getNearestDirectory(node) {
+    const selected = getNearestDirectory_(node);
+    const path = pathToRootDir(selected);
+    if (selected.type === 'directory') {
+        return path ? `${path}/${selected.name}` : selected.name;
+    }
+    return path;
+}
+
+function showLoadingAnimation(node) {
+    if (!node) {
+        node = $('#directoryTree').tree('getTree');
+    }
+    if (node === $('#directoryTree').tree('getTree')) {
+        $('#directoryTree').tree(
+            'appendNode', {
+                name: 'Loading...',
+                type: 'loadNotification'
+            },
+            node
+        );
+    } else {
+        const target = node.element.getElementsByClassName('jqtree-title jqtree_common')[0];
+        const elem = document.createElement('div');
+        elem.classList.add('loader'); // float left
+        elem.style.marginLeft = '5px';
+        target.after(elem);
+    }
+}
+
+function hideLoadingAnimation(node) {
+    if (!node) {
+        node = $('#directoryTree').tree('getTree');
+    }
+    if (node === $('#directoryTree').tree('getTree')) {
+        node.children.filter(
+            (c) => {
+                return c.type === 'loadNotification';
+            }
+        ).forEach((c) => {
+            $('#directoryTree').tree('removeNode', c);
+        });
+    } else {
+        $('.loader').remove();
+    }
+}
+
+function recalcChildrenIndexes(node) {
+    let index = 0;
+    node.children.forEach((n) => {
+        n.index = index;
+        index++;
+    });
+}
+
+function updateChildrenIndexes(node) {
+    if (signedIn() && node && node.children) {
+        recalcChildrenIndexes(node);
+        const repacked = [];
+        for (let i = 0; i < node.children.length; i++) {
+            repacked.push({
+                type: node.children[i].type,
+                name: node.children[i].name,
+                index: node.children[i].index
+            });
+        }
+        const data = new FormData();
+        data.append('mode', window.projectEnv);
+        data.append('path', getNearestDirectory(node));
+        data.append('entries', JSON.stringify(repacked));
+        sendHttp('POST', 'updateChildrenIndexes', data, () => {});
+    } else updateUI();
 }

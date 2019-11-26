@@ -20,6 +20,7 @@ Library
   Js-sources:          jsbits/deep_eq.js
   Exposed-modules:     Standard,
                        Standard.Debug,
+                       Sketches,
                        Lessons.Bear,
                        Lessons.Logic,
                        Lessons.Penguin,

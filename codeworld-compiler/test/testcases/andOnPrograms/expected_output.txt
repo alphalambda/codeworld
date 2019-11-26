@@ -1,0 +1,7 @@
+program.hs:17:36: error:
+    • The & operator cannot be used to combine programs.
+    • Suggested fix: move & inside a picture expression.
+    • For example:
+          program = drawingOf(a) & drawingOf(b)
+      should be written instead as:
+          program = drawingOf(a & b)

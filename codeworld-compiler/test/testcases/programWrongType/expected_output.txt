@@ -1,0 +1,2 @@
+program.hs:17:1: error: 
+    • Couldn't match expected type Program with actual type Number

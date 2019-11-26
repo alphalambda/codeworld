@@ -1,0 +1,37 @@
+program.hs:17:28: warning:
+    • Found hole: _ :: Number
+    • Valid hole fits include
+        a :: Number (defined at program.hs:18:9)
+        b :: Number (defined at program.hs:19:9)
+        c :: Number (defined at program.hs:20:9)
+        d :: Number (defined at program.hs:21:9)
+        e :: Number (defined at program.hs:22:9)
+        f :: Number (defined at program.hs:23:9)
+        ...
+
+program.hs:18:9: warning:
+    Defined but not used: a
+
+program.hs:19:9: warning:
+    Defined but not used: b
+
+program.hs:20:9: warning:
+    Defined but not used: c
+
+program.hs:21:9: warning:
+    Defined but not used: d
+
+program.hs:22:9: warning:
+    Defined but not used: e
+
+program.hs:23:9: warning:
+    Defined but not used: f
+
+program.hs:24:9: warning:
+    Defined but not used: g
+
+program.hs:25:9: warning:
+    Defined but not used: h
+
+program.hs:26:9: warning:
+    Defined but not used: i

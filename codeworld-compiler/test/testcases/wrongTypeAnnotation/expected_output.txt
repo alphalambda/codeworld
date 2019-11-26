@@ -1,0 +1,5 @@
+program.hs:20:21-24: error: 
+    • Couldn't match expected type Number with actual type Picture
+
+program.hs:23:8: error: 
+    • Couldn't match expected type Picture with actual type Number

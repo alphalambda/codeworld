@@ -81,10 +81,22 @@ rotatedVector (v, k) =
 dotProduct :: (Vector, Vector) -> Number
 dotProduct (v, w) = fromDouble (CW.dotProduct (toCWVect v) (toCWVect w))
 
+-- | A type for pictures.
+--
+-- Pictures can be created from geometry functions such as 'circle'
+-- and 'rectangle'.  They can be combined by overlaying them with '&'.
+-- They can be modified using transformations like 'translated',
+-- 'rotated', 'dilated', 'colored', and 'scaled'.
 newtype Picture = CWPic
     { toCWPic :: CW.Picture
     }
 
+-- | A font in which lettering can be drawn.  Fonts are used with the
+-- 'styledLettering' function.
+--
+-- 'NamedFont' may create a program that only works correctly on
+-- computers where that font is installed, so you are encouraged to
+-- use one of the other values.
 data Font
     = Serif
     | SansSerif
@@ -93,6 +105,8 @@ data Font
     | Fancy
     | NamedFont !Text
 
+-- | A style in which lettering can be drawn.  Text styles are used
+-- with the 'styledLettering' function.
 data TextStyle
     = Plain
     | Italic
@@ -111,7 +125,7 @@ path :: HasCallStack => [Point] -> Picture
 path ps = withFrozenCallStack $ CWPic (CW.path (map toCWVect ps))
 
 {-# WARNING path ["Please use polyline(...) instead of path(...).",
-                  "path may be removed July 2019."] #-}
+                  "path may be removed July 2020."] #-}
 
 -- | A thin sequence of line segments, with these endpoints and line width
 thickPolyline :: HasCallStack => ([Point], Number) -> Picture
@@ -122,7 +136,7 @@ thickPath :: HasCallStack => ([Point], Number) -> Picture
 thickPath (ps, n) = withFrozenCallStack $ CWPic (CW.thickPath (toDouble n) (map toCWVect ps))
 
 {-# WARNING thickPath ["Please use thickPolyline(...) instead of thickPath(...).",
-                       "thickPath may be removed July 2019."] #-}
+                       "thickPath may be removed July 2020."] #-}
 
 -- | A thin polygon with these points as vertices
 polygon :: HasCallStack => [Point] -> Picture
@@ -214,7 +228,7 @@ text :: HasCallStack => Text -> Picture
 text t = withFrozenCallStack $ CWPic (CW.lettering (fromCWText t))
 
 {-# WARNING text ["Please use lettering(...) instead of text(...).",
-                  "text may be removed July 2019."] #-}
+                  "text may be removed July 2020."] #-}
 
 -- | A rendering of text characters, with a specific choice of font and style.
 styledLettering :: HasCallStack => (Text, Font, TextStyle) -> Picture
@@ -236,7 +250,7 @@ styledText :: HasCallStack => (Text, Font, TextStyle) -> Picture
 styledText args = withFrozenCallStack $ styledLettering args
 
 {-# WARNING styledText ["Please use styledLettering(...) instead of styledText(...).",
-                        "styledText may be removed July 2019."] #-}
+                        "styledText may be removed July 2020."] #-}
 
 -- | A picture drawn entirely in this color.
 colored :: HasCallStack => (Picture, Color) -> Picture
@@ -263,23 +277,25 @@ dilated (p, k) = withFrozenCallStack $ CWPic (CW.dilated (toDouble k) (toCWPic p
 rotated :: HasCallStack => (Picture, Number) -> Picture
 rotated (p, th) = withFrozenCallStack $ CWPic (CW.rotated (toDouble (pi * th / 180)) (toCWPic p))
 
--- A picture made by drawing these pictures, ordered from top to bottom.
+-- | A picture made by drawing this list of pictures, ordered from front to back.
 pictures :: HasCallStack => [Picture] -> Picture
 pictures ps = withFrozenCallStack $ CWPic (CW.pictures (map toCWPic ps))
 
--- Binary composition of pictures.
+-- | A binary operation that overlays one picture in from of the other.
 (&) :: HasCallStack => Picture -> Picture -> Picture
 infixr 0 &
 
 a & b = withFrozenCallStack $ CWPic (toCWPic a CW.& toCWPic b)
 
--- | A coordinate plane.  Adding this to your pictures can help you measure distances
+-- | A coordinate plane.
+--
+-- Adding this to your pictures can help you measure distances
 -- more accurately.
 --
 -- Example:
 --
---    program = drawingOf(myPicture & coordinatePlane)
---    myPicture = ...
+-- > program = drawingOf(myPicture & coordinatePlane)
+-- > myPicture = ...
 coordinatePlane :: HasCallStack => Picture
 coordinatePlane = withFrozenCallStack $ CWPic CW.coordinatePlane
 

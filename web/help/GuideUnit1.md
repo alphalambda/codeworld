@@ -253,10 +253,10 @@ went wrong.
     nametag = circle(10)
     ~~~~~
 
-    One line says `nametag` means the text "Victor", but the second line
-    says that `nametag` instead means a circle with a radius of 10.  So
-    which is it?  You probably meant for `nametag` to include both.  To
-    do that, you would write one definition for `nametag`, and use
+    One line says `nametag` means a picture of the text "Victor", but the
+    second line says that `nametag` instead means a circle with a radius of
+    10.  So which is it?  You probably meant for `nametag` to include both.
+    To do that, you would write one definition for `nametag`, and use
     **`&`** to combine the parts.  Like this:
 
     ~~~~~ . clickable
@@ -898,7 +898,7 @@ square  = solidRectangle(4, 4)
 ~~~~~
 
 You can probably think about a lot of other pictures you can draw using
-rotated rectangles, text, and more.
+rotated rectangles, lettering, and more.
 
 !!! collapsible: What happens if you rotate a circle?
     If you rotate a circle, you won't notice any difference at all!  That's
@@ -928,7 +928,7 @@ rotated rectangles, text, and more.
     itself is at the edge.  The diagram below might help to understand what
     happened.
 
-    <div align="center"><iframe src="https://code.world/run.html?mode=codeworld&dhash=De8I5BbL9gFgl_3D74ZINNQ" width=250 height=250 style="border: none;"></iframe></div>
+    <div align="center"><iframe src="https://code.world/run.html?mode=codeworld&dhash=D3uSuTWTC5QgGdXMrh290uA" width=250 height=250 style="border: none;"></iframe></div>
 
     To avoid this, consider rotating the shape first, and then translating
     the rotated shape.
@@ -1349,7 +1349,7 @@ everything in between.
 
 ### Using tools wisely
 
-The CodeWorld web site is the too you use to create your drawings.
+The CodeWorld web site is the tool you use to create your drawings.
 It also has some tricks to help you keep track of parentheses.
 
 * Matching pairs of parentheses are always the same color when you look
@@ -1468,7 +1468,7 @@ can be visualized something like this:
 **********************************************************************************
 
 While this may not seem much simpler, it does make it easier to understand the
-structure of the expression  You can see that the entire expression is an
+structure of the expression.  You can see that the entire expression is an
 application of the `drawingOf` function, which has one argument.  And you can
 look closer at the argument to see what its pieces are.
 
@@ -1553,7 +1553,7 @@ matter!  Explore the notes below to learn more.
     same rectangle being rotated and translated in two orders: with the
     rotation first, and then with the translation first.
 
-    <div align="center"><iframe src="https://code.world/run.html?mode=codeworld&dhash=DKBVUuu3EZUkn4c28OjuXXw" width=250 height=250 style="border: none;"></iframe></div>
+    <div align="center"><iframe src="https://code.world/run.html?mode=codeworld&dhash=DygOdzBNSImB7skCyAG5XNg" width=250 height=250 style="border: none;"></iframe></div>
 
     The result you probably expected comes from rotating first, on the
     inside of the expression, and then translating that result.  If you
@@ -1568,7 +1568,7 @@ matter!  Explore the notes below to learn more.
     rectangle being dilated and translated in two orders: with the
     dilation first, and then with the translation first.
 
-    <div align="center"><iframe src="https://code.world/run.html?mode=codeworld&dhash=DN7I7K6uQA-oLxQXSnCUx2w" width=250 height=250 style="border: none;"></iframe></div>
+    <div align="center"><iframe src="https://code.world/run.html?mode=codeworld&dhash=DCBe0XAfXQv5mXQI5Vr1S4w" width=250 height=250 style="border: none;"></iframe></div>
 
     The result you probably expect comes from dilating or scaling first,
     on the inside of the expression, and then translating that result.
@@ -1582,7 +1582,7 @@ matter!  Explore the notes below to learn more.
     scaling before and after rotation have different effects.  You can see
     that in this illustration.
 
-    <div align="center"><iframe src="https://code.world/run.html?mode=codeworld&dhash=DWZKlE3toXcS8vRFvNXgX9w" width=250 height=250 style="border: none;"></iframe></div>
+    <div align="center"><iframe src="https://code.world/run.html?mode=codeworld&dhash=DmwRKdn3UN0NriPkf3SU_Tw" width=250 height=250 style="border: none;"></iframe></div>
 
     You probably expected the result you get from scaling on the inside,
     and then rotating the result of that.  This only makes a difference,
@@ -1600,9 +1600,9 @@ translated(rotated(scaled(pic, ...), ...), ...)
 Advanced drawing
 ================
 
-As you progress, you may want more flexible shapes than just circles, text,
-and rectangles.  In this section, you will learn ways to describe more
-flexible basic shapes to use in your drawings.
+As you progress, you may want more flexible shapes than just circles,
+lettering, and rectangles.  In this section, you will learn ways to describe
+more flexible basic shapes to use in your drawings.
 
 Points and coordinates
 ----------------------

@@ -1,0 +1,9 @@
+program.hs:16:23-27: error:
+    • The & operator cannot be used with functions.
+    • If you intended to combine animations,
+      you must combine the frames in a function, instead.
+    • For example:
+          program = animationOf(a & b)
+      should be written instead as:
+          program = animationOf(overall)
+          overall(t) = a(t) & b(t)

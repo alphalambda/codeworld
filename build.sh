@@ -26,13 +26,13 @@ if [ "x$1" = "x-d" ]; then
 fi
 
 # Install the codeworld-base and codeworld-api packages
-
 run .  cabal_install --ghcjs ./codeworld-prediction \
                              ./codeworld-error-sanitizer \
                              ./codeworld-api \
                              ./codeworld-base \
                              ./codeworld-game-api \
-                             QuickCheck
+                             QuickCheck \
+                             linear
 
 run codeworld-base  cabal configure --ghcjs
 run codeworld-base  cabal haddock --html
@@ -51,6 +51,7 @@ run codeworld-api   cabal haddock --hoogle
 run .  cabal_install ./codeworld-server \
                      ./codeworld-error-sanitizer \
                      ./codeworld-compiler \
+                     ./codeworld-requirements \
                      ./codeworld-game-api \
                      ./codeworld-prediction \
                      ./codeworld-api \

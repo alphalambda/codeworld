@@ -17,10 +17,50 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -}
-module Internal.Exports
-    -- Miscellaneous types and functions
-    ( Number
-    , Text
+module Internal.Exports (
+    -- * Entry points
+      Program
+    , drawingOf
+    , animationOf
+    , activityOf
+    , debugActivityOf
+    , groupActivityOf
+    -- * Pictures
+    , Picture
+    , codeWorldLogo
+    , circle
+    , solidCircle
+    , thickCircle
+    , rectangle
+    , solidRectangle
+    , thickRectangle
+    , pictures
+    , (&)
+    , coordinatePlane
+    , blank
+    , colored
+    , coloured
+    , translated
+    , scaled
+    , dilated
+    , rotated
+    , polyline
+    , thickPolyline
+    , polygon
+    , thickPolygon
+    , solidPolygon
+    , curve
+    , thickCurve
+    , closedCurve
+    , thickClosedCurve
+    , solidClosedCurve
+    , arc
+    , sector
+    , thickArc
+    , lettering
+    , styledLettering
+    , Font(..)
+    , TextStyle(..)
     -- * Colors
     , Color
     , Colour
@@ -33,15 +73,8 @@ module Internal.Exports
     , red
     , green
     , blue
-    , cyan
-    , magenta
     , yellow
-    , aquamarine
     , orange
-    , azure
-    , violet
-    , chartreuse
-    , rose
     , brown
     , pink
     , purple
@@ -49,35 +82,21 @@ module Internal.Exports
     , grey
 -}
     , mixed
-    , lighter
     , light
-    , darker
     , dark
-    , brighter
     , bright
-    , duller
     , dull
     , translucent
     , assortedColors
+    , lighter
+    , darker
+    , brighter
+    , duller
     , hue
     , saturation
     , luminosity
     , alpha
-{-
-    , pattern White
-    , pattern Black
-    , pattern Gray
-    , pattern Grey
-    , pattern Red
-    , pattern Orange
-    , pattern Yellow
-    , pattern Green
-    , pattern Blue
-    , pattern Purple
-    , pattern Pink
-    , pattern Brown
--}
-    -- * Pictures
+    -- * Points and vectors
     , Point
     , translatedPoint
     , rotatedPoint
@@ -116,9 +135,7 @@ module Internal.Exports
     , arc
     , sector
     , thickArc
-    {- , text -}
     , lettering
-    {- , styledText -}
     , styledLettering
     , colored
     , coloured
@@ -134,13 +151,11 @@ module Internal.Exports
     , Event(..)
     -- * Debugging
     , traced
-    -- * Entry points
-    , Program
-    , drawingOf
-    , animationOf
-    , activityOf
-    , debugActivityOf
-    , groupActivityOf
+    -- * Deprecated definitions (do not use)
+    , path
+    , thickPath
+    , text
+    , styledText
     , simulationOf
     , debugSimulationOf
     , interactionOf
@@ -149,7 +164,16 @@ module Internal.Exports
     -- * Locally fixed identifiers
     , concatenated
     , truncated
-    , merged
+    , flattened
+{-
+    , cyan
+    , magenta
+    , aquamarine
+    , azure
+    , violet
+    , chartreuse
+    , rose
+-}
     ) where
 
 import "base" Prelude (IO)
@@ -172,5 +196,5 @@ concatenated = concatenation
 truncated :: Number -> Number
 truncated = truncation
 
-merged :: [Picture] -> Picture
-merged = pictures
+flattened :: [Picture] -> Picture
+flattened = pictures

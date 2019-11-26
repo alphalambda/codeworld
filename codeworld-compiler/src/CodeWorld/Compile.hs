@@ -40,6 +40,7 @@ import Control.Monad.State
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import Data.List
+import qualified Data.Map as Map
 import Data.Maybe
 import Data.Monoid
 import Data.Text (Text)
@@ -63,7 +64,7 @@ formatDiagnostics diags =
 
 formatDiagnostic :: Diagnostic -> Text
 formatDiagnostic (loc, _, msg) =
-    T.pack (formatLocation loc ++ msg)
+    T.pack (formatLocation loc ++ ": " ++ msg)
 
 readUtf8 :: FilePath -> IO Text
 readUtf8 f = decodeUtf8 <$> B.readFile f
@@ -72,21 +73,27 @@ writeUtf8 :: FilePath -> Text -> IO ()
 writeUtf8 f = B.writeFile f . encodeUtf8
 
 compileSource
-    :: Stage -> FilePath -> FilePath -> String -> Bool -> IO CompileStatus
-compileSource stage src err mode verbose = fromMaybe CompileAborted <$>
-    withTimeout timeout (compileStatus <$> execStateT build initialState)
+    :: Stage -> FilePath -> (String -> IO (Maybe FilePath)) -> FilePath -> String -> Bool -> IO CompileStatus
+compileSource stage src moduleFinder err mode verbose = fromMaybe CompileAborted <$> do
+    withTimeout timeout $
+        withSystemTempDirectory "build" $ \tmpdir ->
+            compileStatus <$> execStateT build (initialState tmpdir)
   where
-    initialState = CompileState {
+    initialState buildDir = CompileState {
         compileMode = mode,
         compileStage = stage,
-        compileSourcePath = src,
+        compileBuildDir = buildDir,
+        compileSourcePaths = [src],
+        compileModuleFinder = moduleFinder,
         compileOutputPath = err,
         compileVerbose = verbose,
         compileTimeout = timeout,
         compileStatus = CompileSuccess,
         compileErrors = [],
-        compileReadSource = Nothing,
-        compileParsedSource = Nothing
+        compileMainSourcePath = Nothing,
+        compileReadSource = Map.empty,
+        compileParsedSource = Map.empty,
+        compileGHCParsedSource = Map.empty
         }
     timeout = case stage of
         GenBase _ _ _ _ -> maxBound :: Int
@@ -97,6 +104,7 @@ userCompileMicros = 30 * 1000000
 
 build :: MonadCompile m => m ()
 build = do
+    findAllModules
     checkDangerousSource
     ifSucceeding checkCodeConventions
     ifSucceeding compileCode
@@ -108,7 +116,8 @@ build = do
     liftIO $ B.writeFile errPath $ encodeUtf8 $ formatDiagnostics diags
 
 compileCode :: MonadCompile m => m ()
-compileCode = ifSucceeding $ withSystemTempDirectory "build" $ \tmpdir -> do
+compileCode = ifSucceeding $ do
+    tmpdir <- gets compileBuildDir
     ghcjsArgs <- prepareCompile tmpdir
 
     timeout <- gets compileTimeout
@@ -125,8 +134,13 @@ compileCode = ifSucceeding $ withSystemTempDirectory "build" $ \tmpdir -> do
 
 prepareCompile :: MonadCompile m => FilePath -> m [String]
 prepareCompile dir = do
-    src <- gets compileSourcePath
-    liftIO $ copyFile src (dir </> "program.hs")
+    srcs <- gets compileSourcePaths
+    mainSrc <- getMainSourcePath
+    localSrcs <- forM srcs $ \src -> do
+        let dest | src == mainSrc = "program.hs"
+                 | otherwise = takeFileName src
+        liftIO $ copyFile src (dir </> dest)
+        return dest
 
     mode <- gets compileMode
     stage <- gets compileStage
@@ -140,11 +154,17 @@ prepareCompile dir = do
             liftIO $ copyFile syms (dir </> "out.base.symbs")
             return ["-dedupe", "-use-base", "out.base.symbs"]
 
-    return $ ["program.hs"] ++ buildArgs mode ++ linkArgs
+    mainMod <- getMainModuleName
+    return $ localSrcs ++ buildArgs mainMod mode ++ linkArgs
 
-buildArgs :: SourceMode -> [String]
-buildArgs "codeworld" =
+buildArgs :: String -> SourceMode -> [String]
+buildArgs mainMod "codeworld" =
     [ "-DGHCJS_BROWSER"
+    , "-ferror-spans"
+    , "-fno-diagnostics-show-caret"
+    , "-hide-package", "base"
+    , "-hide-package", "codeworld-api"
+    , "-package", "codeworld-base"
     , "-Wall"
     , "-Wdeferred-type-errors"
     , "-Wdeferred-out-of-scope-variables"
@@ -155,11 +175,7 @@ buildArgs "codeworld" =
     , "-fno-warn-unused-matches"
     , "-fdefer-type-errors"
     , "-fdefer-out-of-scope-variables"
-    , "-ferror-spans"
-    , "-hide-package"
-    , "base"
-    , "-package"
-    , "codeworld-base"
+    , "-fmax-relevant-binds=0"
     , "-Wno-partial-type-signatures"
     , "-XBangPatterns"
     , "-XDisambiguateRecordFields"
@@ -187,16 +203,17 @@ buildArgs "codeworld" =
     , "-XTypeOperators"
     , "-XViewPatterns"
 {-    , "-XImplicitPrelude" -} -- MUST come after RebindableSyntax.
-    , "-main-is"
-    , "Main.program"
+    , "-main-is", mainMod ++ ".program"
     ]
-buildArgs "haskell" =
+
+buildArgs mainMod "haskell" =
     [ "-DGHCJS_BROWSER"
     , "-ferror-spans"
-    , "-package"
-    , "codeworld-api"
-    , "-package"
-    , "QuickCheck"
+    , "-fno-diagnostics-show-caret"
+    , "-package", "codeworld-api"
+    , "-package", "QuickCheck"
+    , "-package", "reflex"
+    , "-main-is", mainMod ++ ".main"
     ]
 
 runCompiler :: FilePath -> Int -> [String] -> Bool -> IO (ExitCode, Text)
@@ -225,13 +242,13 @@ parseDiagnostic msg
         : (readT -> Just col)
         : body : _) : _) <-
         msg =~ ("^program.hs:([0-9]+):([0-9]+): ((.|\n)*)$" :: Text)
-    = (srcSpanFrom ln ln col col, CompileSuccess, T.unpack body)
+    = (srcSpanFrom ln ln col (col + 1), CompileSuccess, T.unpack body)
   | ((_ : (readT -> Just ln)
         : (readT -> Just col1)
         : (readT -> Just col2)
         : body : _) : _) <-
         msg =~ ("^program.hs:([0-9]+):([0-9]+)-([0-9]+): ((.|\n)*)$" :: Text)
-    = (srcSpanFrom ln ln col1 col2, CompileSuccess, T.unpack body)
+    = (srcSpanFrom ln ln col1 (col2 + 1), CompileSuccess, T.unpack body)
   | ((_ : (readT -> Just ln1)
         : (readT -> Just col1)
         : (readT -> Just ln2)
@@ -239,7 +256,7 @@ parseDiagnostic msg
         : body : _) : _) <-
         msg =~ ("^program.hs:[(]([0-9]+),([0-9]+)[)]" <>
                 "-[(]([0-9]+),([0-9]+)[)]: ((.|\n)*)$" :: Text)
-    = (srcSpanFrom ln1 ln2 col1 col2, CompileSuccess, T.unpack body)
+    = (srcSpanFrom ln1 ln2 col1 (col2 + 1), CompileSuccess, T.unpack body)
   | otherwise = (noSrcSpan, CompileSuccess, T.unpack msg ++ " (no loc)")
   where readT = readMaybe . T.unpack
 

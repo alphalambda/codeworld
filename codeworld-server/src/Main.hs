@@ -2,6 +2,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 {-# OPTIONS_GHC
     -fno-warn-incomplete-patterns
     -fno-warn-name-shadowing
@@ -41,6 +43,7 @@ import Control.Concurrent (forkIO)
 import Control.Concurrent.MSem (MSem)
 import qualified Control.Concurrent.MSem as MSem
 import Control.Exception (bracket_)
+import Control.Exception.Lifted (catch)
 import Control.Monad
 import Control.Monad.Trans
 import Data.Aeson
@@ -56,9 +59,9 @@ import Data.Text (Text)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
-import HIndent (reformat)
-import HIndent.Types (defaultConfig)
-import Network.HTTP.Conduit
+import qualified Data.Vector as V
+import Ormolu (ormolu, defaultConfig, OrmoluException)
+import Network.HTTP.Simple
 import Snap.Core
 import Snap.Http.Server (quickHttpServe)
 import Snap.Util.FileServe
@@ -67,8 +70,6 @@ import System.Directory
 import System.FileLock
 import System.FilePath
 import System.IO.Temp
-import System.Log.FastLogger
-import System.Log.FastLogger.Date
 
 import Model
 import Util
@@ -83,8 +84,7 @@ data Context = Context {
     authConfig :: AuthConfig,
     compileSem :: MSem Int,
     errorSem :: MSem Int,
-    baseSem :: MSem Int,
-    userReportLogger :: TimedFastLogger
+    baseSem :: MSem Int
     }
 
 main :: IO ()
@@ -95,13 +95,10 @@ main = do
 
 makeContext :: IO Context
 makeContext = do
-    timeCache <- newTimeCache simpleTimeFormat
-    let logType = LogFileNoRotate ("data" </> "user_reports.log") 0
     ctx <- Context <$> (getAuthConfig =<< getCurrentDirectory)
                    <*> MSem.new maxSimultaneousCompiles
                    <*> MSem.new maxSimultaneousErrorChecks
                    <*> MSem.new 1
-                   <*> (fst <$> newTimedFastLogger timeCache logType)
     putStrLn $ "Authentication method: " ++ authMethod (authConfig ctx)
     return ctx
 
@@ -152,9 +149,10 @@ site ctx =
             [ ("loadProject", loadProjectHandler ctx)
             , ("saveProject", saveProjectHandler ctx)
             , ("deleteProject", deleteProjectHandler ctx)
-            , ("listFolder", listFolderHandler ctx)
             , ("createFolder", createFolderHandler ctx)
             , ("deleteFolder", deleteFolderHandler ctx)
+            , ("listFolder", listFolderHandler ctx)
+            , ("updateChildrenIndexes", updateChildrenIndexesHandler ctx)
             , ("shareFolder", shareFolderHandler ctx)
             , ("shareContent", shareContentHandler ctx)
             , ("moveProject", moveProjectHandler ctx)
@@ -188,15 +186,17 @@ createFolderHandler :: CodeWorldHandler
 createFolderHandler = private $ \userId ctx -> do
     mode <- getBuildMode
     Just path <- fmap (splitDirectories . BC.unpack) <$> getParam "path"
-    let dirIds = map (nameToDirId . T.pack) path
-    let finalDir = joinPath $ map dirBase dirIds
+    let pathText = map T.pack path
+        dirIds = map nameToDirId pathText
+        finalDir = joinPath $ map dirBase dirIds
+        name = last pathText
     liftIO $ ensureUserBaseDir mode userId finalDir
     liftIO $ createDirectory $ userProjectDir mode userId </> finalDir
     modifyResponse $ setContentType "text/plain"
     liftIO $
-        B.writeFile
-            (userProjectDir mode userId </> finalDir </> "dir.info") $
-        BC.pack $ last path
+        T.writeFile
+            (userProjectDir mode userId </> finalDir </> "dir.info")
+            name
 
 deleteFolderHandler :: CodeWorldHandler
 deleteFolderHandler = private $ \userId ctx -> do
@@ -262,10 +262,23 @@ listFolderHandler = private $ \userId ctx -> do
     liftIO $ ensureUserBaseDir mode userId finalDir
     liftIO $ ensureUserDir mode userId finalDir
     let projectDir = userProjectDir mode userId
-    files <- liftIO $ projectFileNames (projectDir </> finalDir)
-    dirs <- liftIO $ projectDirNames (projectDir </> finalDir)
+    entries <- liftIO $ fsEntries (projectDir </> finalDir)
     modifyResponse $ setContentType "application/json"
-    writeLBS (encode (Directory files dirs))
+    writeLBS (encode entries)
+
+-- | Update order of elements inside of given directory
+updateChildrenIndexesHandler :: CodeWorldHandler
+updateChildrenIndexesHandler = private $ \userId ctx -> do
+    mode <- getBuildMode
+    let projectDir = userProjectDir mode userId
+    Just path <- fmap ((\p -> projectDir </> p </> "order.info") .
+                        joinPath . (map (dirBase . nameToDirId . T.pack)) .
+                        splitDirectories . BC.unpack)
+                    <$> getParam "path"
+    param <- getParam "entries"
+    -- Encoding just to check if request param is correct
+    Just entries <- decodeStrict . fromJust <$> getParam "entries" :: Snap (Maybe [FileSystemEntry])
+    liftIO $ LB.writeFile path $ encode entries
 
 shareFolderHandler :: CodeWorldHandler
 shareFolderHandler = private $ \userId ctx -> do
@@ -290,14 +303,15 @@ shareContentHandler = private $ \userId ctx -> do
         liftIO $
         B.readFile
             (shareRootDir mode </> shareLink (ShareId $ T.decodeUtf8 shash))
-    Just name <- getParam "name"
-    let dirPath = dirBase $ nameToDirId $ T.decodeUtf8 name
+    Just nameBC <- getParam "name"
+    let name = T.decodeUtf8 nameBC
+        dirPath = dirBase $ nameToDirId name
     liftIO $ ensureUserBaseDir mode userId dirPath
     liftIO $
         copyDirIfExists (BC.unpack sharingFolder) $
         userProjectDir mode userId </> dirPath
     liftIO $
-        B.writeFile
+        T.writeFile
             (userProjectDir mode userId </> dirPath </> "dir.info")
             name
 
@@ -451,13 +465,15 @@ indentHandler :: CodeWorldHandler
 indentHandler = public $ \ctx -> do
     mode <- getBuildMode
     Just source <- getParam "source"
-    case reformat defaultConfig Nothing Nothing source of
-        Left err -> do
-            modifyResponse $ setResponseCode 500 . setContentType "text/plain"
-            writeLBS $ LB.fromStrict $ BC.pack err
-        Right res -> do
-            modifyResponse $ setContentType "text/x-haskell"
-            writeLBS $ toLazyByteString res
+    reformat source `catch` handleError
+  where
+    reformat source = do
+        result <- ormolu defaultConfig "program.hs" (T.unpack (T.decodeUtf8 source))
+        modifyResponse $ setContentType "text/x-haskell"
+        writeBS $ T.encodeUtf8 result
+    handleError (e :: OrmoluException) = do
+        modifyResponse $ setResponseCode 500 . setContentType "text/plain"
+        writeLBS $ LB.fromStrict $ BC.pack (show e)
 
 galleryHandler :: CodeWorldHandler
 galleryHandler = public $ const $ do
@@ -496,9 +512,27 @@ galleryItemFromProject mode@(BuildMode modeName) folder name = do
 
 logHandler :: CodeWorldHandler
 logHandler = public $ \ctx -> do
-    Just message <- getParam "message"
-    let logLine t = "[" <> toLogStr t <> "] " <> toLogStr message <> "\n"
-    liftIO $ userReportLogger ctx logLine
+    Just message <- fmap T.decodeUtf8 <$> getParam "message"
+    title <- fromMaybe "User-reported unhelpful error message" <$>
+        fmap T.decodeUtf8 <$> getParam "title"
+    tag <- fromMaybe "error-message" <$> fmap T.decodeUtf8 <$> getParam "tag"
+
+    liftIO $ do
+        let body = object [
+                ("title", String title),
+                ("body", String message),
+                ("labels", toJSON [tag])
+                ]
+        authToken <- B.readFile "github-auth-token.txt"
+        let authHeader = "token " <> authToken
+        let userAgent = "https://code.world github integration by cdsmith"
+        request <-
+            addRequestHeader "Authorization" authHeader <$>
+            addRequestHeader "User-agent" userAgent <$>
+            setRequestBodyJSON body <$>
+            parseRequestThrow "POST https://api.github.com/repos/google/codeworld/issues"
+        httpNoBody request
+    return ()
 
 responseCodeFromCompileStatus :: CompileStatus -> Int
 responseCodeFromCompileStatus CompileSuccess = 200
@@ -512,31 +546,50 @@ compileIfNeeded ctx mode programId = do
     if | hasResult && hasTarget -> return CompileSuccess
        | hasResult -> return CompileError
        | otherwise ->
-             MSem.with (compileSem ctx) $ compileIncrementally ctx mode programId
+             MSem.with (compileSem ctx) $ compileProgram ctx mode programId
 
-compileIncrementally :: Context -> BuildMode -> ProgramId -> IO CompileStatus
-compileIncrementally ctx mode programId = do
+compileProgram :: Context -> BuildMode -> ProgramId -> IO CompileStatus
+compileProgram ctx mode programId = do
     ver <- baseVersion
     baseStatus <- buildBaseIfNeeded ctx ver
 
     case baseStatus of
         CompileSuccess -> do
-            let source = sourceRootDir mode </> sourceFile programId
-            let target = buildRootDir mode </> targetFile programId
-            let result = buildRootDir mode </> resultFile programId
-            let baseVer = buildRootDir mode </> baseVersionFile programId
-            let baseURL = "runBaseJS?version=" ++ T.unpack ver
-            let stage = UseBase target (baseSymbolFile ver) baseURL
-
-            status <- compileSource stage source result (getMode mode) False
-            T.writeFile baseVer ver
+            status <- compileIncrementally mode programId ver
+            T.writeFile (buildRootDir mode </> baseVersionFile programId) ver
 
             -- It's possible that a new library was built during the compile.  If so, then the code
             -- we've just built is suspect, and it's better to just build it anew!
             checkVer <- baseVersion
             if ver == checkVer then return status
-                               else compileIncrementally ctx mode programId
+                               else compileProgram ctx mode programId
         _ -> return CompileAborted
+
+compileIncrementally :: BuildMode -> ProgramId -> Text -> IO CompileStatus
+compileIncrementally mode programId ver =
+    compileSource stage source (projectModuleFinder mode) result (getMode mode) False
+  where
+    source = sourceRootDir mode </> sourceFile programId
+    target = buildRootDir mode </> targetFile programId
+    result = buildRootDir mode </> resultFile programId
+    baseURL = "runBaseJS?version=" ++ T.unpack ver
+    stage = UseBase target (baseSymbolFile ver) baseURL
+
+projectModuleFinder :: BuildMode -> String -> IO (Maybe FilePath)
+projectModuleFinder mode modName
+  | length modName /= 23 || '.' `elem` modName = return Nothing
+  | "P" `isPrefixOf` modName = go (ProgramId (T.pack modName))
+  | "D" `isPrefixOf` modName = do
+      let deployId = DeployId (T.pack modName)
+      resolveDeployId mode deployId >>= go
+  | otherwise = return Nothing
+  where go programId = do
+            let path = sourceRootDir mode </> sourceFile programId
+            exists <- doesFileExist path
+            if exists then return (Just path) else return Nothing
+
+noModuleFinder :: String -> IO (Maybe FilePath)
+noModuleFinder _ = return Nothing
 
 buildBaseIfNeeded :: Context -> Text -> IO CompileStatus
 buildBaseIfNeeded ctx ver = do
@@ -549,7 +602,7 @@ buildBaseIfNeeded ctx ver = do
                 let err = tmpdir </> "output.txt"
                 generateBaseBundle basePaths baseIgnore "codeworld" linkMain linkBase
                 let stage = GenBase "LinkBase" linkBase (baseCodeFile ver) (baseSymbolFile ver)
-                compileSource stage linkMain err "codeworld" False
+                compileSource stage linkMain noModuleFinder err "codeworld" False
         else return CompileSuccess
 
 basePaths :: [FilePath]
@@ -564,7 +617,7 @@ errorCheck ctx mode source = withSystemTempDirectory "cw_errorCheck" $ \dir -> d
     let errFile = dir </> "output.txt"
     B.writeFile srcFile source
     status <- MSem.with (errorSem ctx) $ MSem.with (compileSem ctx) $
-        compileSource ErrorCheck srcFile errFile (getMode mode) False
+        compileSource ErrorCheck srcFile (projectModuleFinder mode) errFile (getMode mode) False
     hasOutput <- doesFileExist errFile
     output <- if hasOutput then B.readFile errFile else return B.empty
     return (status, output)

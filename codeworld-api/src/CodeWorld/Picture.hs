@@ -1,5 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 {-
   Copyright 2019 The CodeWorld Authors. All rights reserved.
@@ -22,12 +24,18 @@ import CodeWorld.Color
 import Control.DeepSeq
 import Data.List
 import Data.Monoid ((<>))
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import GHC.Generics (Generic)
 import GHC.Stack
+import Util.EmbedAsUrl
 
 type Point = (Double, Double)
 
+-- | Move given point by given X-axis and Y-axis offsets
+-- >>> translatedPoint 1 2 (10,10)
+-- (11.0,12.0)
+-- >>> translatedPoint (-1) (-2) (0,0)
+-- (-1.0,-2.0)
 translatedPoint :: Double -> Double -> Point -> Point
 translatedPoint tx ty (x, y) = (x + tx, y + ty)
 
@@ -43,8 +51,17 @@ dilatedPoint k (x, y) = (k * x, k * y)
 type Vector = (Double, Double)
 
 vectorLength :: Vector -> Double
-vectorLength (x, y) = sqrt (x ^ 2 + y ^ 2)
+vectorLength (x, y) = sqrt (x*x + y*y)
 
+{-| Given vector, calculate angle in radians that it has with the X-axis.
+
+>>> vectorDirection (1,0)
+0.0
+>>> vectorDirection (1,1)
+0.7853981633974483
+>>> vectorDirection (0,1)
+1.5707963267948966
+-}
 vectorDirection :: Vector -> Double
 vectorDirection (x, y) = atan2 y x
 
@@ -57,7 +74,13 @@ vectorDifference (x1, y1) (x2, y2) = (x1 - x2, y1 - y2)
 scaledVector :: Double -> Vector -> Vector
 scaledVector k (x, y) = (k * x, k * y)
 
-{-| Angle is in radians -}
+{-| Rotate given vector by given angle in radians
+
+>>> rotatedVector pi (1.0, 0.0)
+(-1.0,1.2246467991473532e-16)
+>>> rotatedVector (pi / 2) (1.0, 0.0)
+(6.123233995736766e-17,1.0)
+ -}
 rotatedVector :: Double -> Vector -> Vector
 rotatedVector angle (x, y) =
     (x * cos angle - y * sin angle, x * sin angle + y * cos angle)
@@ -66,85 +89,34 @@ dotProduct :: Vector -> Vector -> Double
 dotProduct (x1, y1) (x2, y2) = x1 * x2 + y1 * y2
 
 data Picture
-    = SolidPolygon (Maybe SrcLoc)
-              [Point]
-    | SolidClosedCurve (Maybe SrcLoc)
-              [Point]
-    | Polygon (Maybe SrcLoc)
-           [Point]
-    | ThickPolygon (Maybe SrcLoc)
-           [Point]
-           !Double
-    | Rectangle (Maybe SrcLoc)
-           !Double
-           !Double
-    | SolidRectangle (Maybe SrcLoc)
-           !Double
-           !Double
-    | ThickRectangle (Maybe SrcLoc)
-           !Double
-           !Double
-           !Double
-    | ClosedCurve (Maybe SrcLoc)
-           [Point]
-    | ThickClosedCurve (Maybe SrcLoc)
-           [Point]
-           !Double
-    | Polyline (Maybe SrcLoc)
-           [Point]
-    | ThickPolyline (Maybe SrcLoc)
-           [Point]
-           !Double
-    | Curve (Maybe SrcLoc)
-           [Point]
-    | ThickCurve (Maybe SrcLoc)
-           [Point]
-           !Double
-    | Circle (Maybe SrcLoc)
-           !Double
-    | SolidCircle (Maybe SrcLoc)
-           !Double
-    | ThickCircle (Maybe SrcLoc)
-           !Double
-           !Double
-    | Sector (Maybe SrcLoc)
-             !Double
-             !Double
-             !Double
-    | Arc (Maybe SrcLoc)
-          !Double
-          !Double
-          !Double
-    | ThickArc (Maybe SrcLoc)
-          !Double
-          !Double
-          !Double
-          !Double
-    | StyledLettering (Maybe SrcLoc)
-           !TextStyle
-           !Font
-           !Text
-    | Lettering (Maybe SrcLoc)
-           !Text
-    | Color (Maybe SrcLoc)
-            !Color
-            !Picture
-    | Translate (Maybe SrcLoc)
-                !Double
-                !Double
-                !Picture
-    | Scale (Maybe SrcLoc)
-            !Double
-            !Double
-            !Picture
-    | Dilate (Maybe SrcLoc)
-             !Double
-             !Picture
-    | Rotate (Maybe SrcLoc)
-             !Double
-             !Picture
+    = SolidPolygon (Maybe SrcLoc) [Point]
+    | SolidClosedCurve (Maybe SrcLoc) [Point]
+    | Polygon (Maybe SrcLoc) [Point]
+    | ThickPolygon (Maybe SrcLoc) [Point] !Double
+    | Rectangle (Maybe SrcLoc) !Double !Double
+    | SolidRectangle (Maybe SrcLoc) !Double !Double
+    | ThickRectangle (Maybe SrcLoc) !Double !Double !Double
+    | ClosedCurve (Maybe SrcLoc) [Point]
+    | ThickClosedCurve (Maybe SrcLoc) [Point] !Double
+    | Polyline (Maybe SrcLoc) [Point]
+    | ThickPolyline (Maybe SrcLoc) [Point] !Double
+    | Curve (Maybe SrcLoc) [Point]
+    | ThickCurve (Maybe SrcLoc) [Point] !Double
+    | Circle (Maybe SrcLoc) !Double
+    | SolidCircle (Maybe SrcLoc) !Double
+    | ThickCircle (Maybe SrcLoc) !Double !Double
+    | Sector (Maybe SrcLoc) !Double !Double !Double
+    | Arc (Maybe SrcLoc) !Double !Double !Double
+    | ThickArc (Maybe SrcLoc) !Double !Double !Double !Double
+    | StyledLettering (Maybe SrcLoc) !TextStyle !Font !Text
+    | Lettering (Maybe SrcLoc) !Text
+    | Color (Maybe SrcLoc) !Color !Picture
+    | Translate (Maybe SrcLoc) !Double !Double !Picture
+    | Scale (Maybe SrcLoc) !Double !Double !Picture
+    | Dilate (Maybe SrcLoc) !Double !Picture
+    | Rotate (Maybe SrcLoc) !Double !Picture
     | CoordinatePlane (Maybe SrcLoc)
-    | Logo (Maybe SrcLoc)
+    | Sketch (Maybe SrcLoc) !Text !Text !Double !Double
     | Pictures (Maybe SrcLoc) [Picture]
     | PictureAnd (Maybe SrcLoc) [Picture]
     | Blank (Maybe SrcLoc)
@@ -184,7 +156,7 @@ path :: HasCallStack => [Point] -> Picture
 path ps = Polyline (getDebugSrcLoc callStack) ps
 
 {-# WARNING path ["Please use polyline instead of path.",
-                  "path may be removed July 2019."] #-}
+                  "path may be removed July 2020."] #-}
 
 -- | A thick sequence of line segments, with given line width and endpoints
 thickPolyline :: HasCallStack => Double -> [Point] -> Picture
@@ -195,7 +167,7 @@ thickPath :: HasCallStack => Double -> [Point] -> Picture
 thickPath n ps = ThickPolyline (getDebugSrcLoc callStack) ps n
 
 {-# WARNING thickPath ["Please used thickPolyline instead of thickPath.",
-                       "thickPath may be removed July 2019."] #-}
+                       "thickPath may be removed July 2020."] #-}
 
 -- | A thin polygon with these points as vertices
 polygon :: HasCallStack => [Point] -> Picture
@@ -247,7 +219,7 @@ thickRectangle lw w h = ThickRectangle (getDebugSrcLoc callStack) lw w h
 
 -- | A thin circle, with this radius
 circle :: HasCallStack => Double -> Picture
-circle = Circle (getDebugSrcLoc callStack) 
+circle = Circle (getDebugSrcLoc callStack)
 
 -- | A thick circle, with this line width and radius
 thickCircle :: HasCallStack => Double -> Double -> Picture
@@ -268,7 +240,7 @@ thickArc w b e r = ThickArc (getDebugSrcLoc callStack) b e r w
 
 -- | A solid circle, with this radius
 solidCircle :: HasCallStack => Double -> Picture
-solidCircle = SolidCircle (getDebugSrcLoc callStack) 
+solidCircle = SolidCircle (getDebugSrcLoc callStack)
 
 -- | A solid sector of a circle (i.e., a pie slice) starting and ending at these
 -- angles, with this radius
@@ -282,7 +254,7 @@ text :: HasCallStack => Text -> Picture
 text = Lettering (getDebugSrcLoc callStack)
 
 {-# WARNING text ["Please used lettering instead of text.",
-                  "text may be removed July 2019."] #-}
+                  "text may be removed July 2020."] #-}
 
 -- | A rendering of text characters.
 lettering :: HasCallStack => Text -> Picture
@@ -293,7 +265,7 @@ styledText :: HasCallStack => TextStyle -> Font -> Text -> Picture
 styledText = StyledLettering (getDebugSrcLoc callStack)
 
 {-# WARNING styledText ["Please used styledLettering instead of styledText.",
-                        "styledText may be removed July 2019."] #-}
+                        "styledText may be removed July 2020."] #-}
 
 -- | A rendering of text characters onto a Picture, with a specific
 -- choice of font and style.
@@ -334,7 +306,7 @@ pictures = Pictures (getDebugSrcLoc callStack)
 (&) :: HasCallStack => Picture -> Picture -> Picture
 infixr 0 &
 
-a & b@(PictureAnd loc2 bs)
+a & PictureAnd loc2 bs
   | srcContains loc1 loc2 = PictureAnd loc1 (a:bs)
   where loc1 = getDebugSrcLoc callStack
 a & b = PictureAnd (getDebugSrcLoc callStack) [a, b]
@@ -355,15 +327,21 @@ instance Semigroup Picture where
 -- more accurately.
 --
 -- Example:
---
---    main = drawingOf (myPicture <> coordinatePlane)
---    myPicture = ...
+-- @
+-- main = drawingOf (myPicture <> coordinatePlane)
+-- myPicture = ...
+-- @
 coordinatePlane :: HasCallStack => Picture
 coordinatePlane = CoordinatePlane (getDebugSrcLoc callStack)
 
 -- | The CodeWorld logo.
 codeWorldLogo :: HasCallStack => Picture
-codeWorldLogo = Logo (getDebugSrcLoc callStack)
+codeWorldLogo =
+    Sketch
+        (getDebugSrcLoc callStack)
+        "codeWorldLogo"
+        $(embedAsUrl "image/svg+xml" "data/codeworld.svg")
+        17.68 7.28
 
 getDebugSrcLoc :: CallStack -> Maybe SrcLoc
 getDebugSrcLoc cs = Data.List.find ((== "main") . srcLocPackage) locs

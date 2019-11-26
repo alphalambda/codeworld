@@ -16,13 +16,6 @@
 'use strict';
 
 (() => {
-    let available = false;
-    let active = false;
-
-    // Checked by parent.updateUI
-    window.debugAvailable = false;
-    window.debugActive = false;
-
     // These functions are provided by a debugmode-supported entrypoint when
     // calling initDebugMode
     //  debugGetNode :: { x :: Double, y :: Double } -> Int
@@ -43,24 +36,19 @@
     //   position). A negative value indicates to stop highlighting or selecting.
     //   At most one shape may be highlighted and one shape selected at a time.
     let debugHighlightShape = null;
-    // debugDrawShape :: (Canvas, Int) -> ()
-    //  Draws the node with a coordinate plane in the background.
-    let debugDrawShape = null;
 
-    let cachedPic = null;
-    let canvas = null;
+    let canvas = null; // Null if debugging isn't enabled.
+    let active = false;
 
     // Globals
 
-    function initDebugMode(getNode, setActive, getPicture, highlightShape,
-        drawShape) {
+    function initDebugMode(getNode, setActive, getPicture, highlightShape) {
         debugGetNode = getNode;
         debugSetActive = setActive;
         debugGetPicture = getPicture;
         debugHighlightShape = highlightShape;
-        debugDrawShape = drawShape;
 
-        if (!available) {
+        if (canvas === null) {
             canvas = document.getElementById('screen');
 
             canvas.addEventListener('mousemove', evt => {
@@ -71,12 +59,20 @@
                     });
 
                     debugHighlightShape(true, nodeId);
+                    parent.postMessage({
+                        type: 'nodeHovered',
+                        nodeId: nodeId
+                    }, '*');
                 }
             });
 
             canvas.addEventListener('mouseout', evt => {
                 if (active) {
                     debugHighlightShape(true, -1);
+                    parent.postMessage({
+                        type: 'nodeHovered',
+                        nodeId: -1
+                    }, '*');
                 }
             });
 
@@ -87,58 +83,54 @@
                         y: evt.clientY
                     });
 
-                    if (nodeId >= 0) {
-                        parent.openTreeDialog(nodeId);
-                    }
+                    parent.postMessage({
+                        type: 'nodeClicked',
+                        nodeId: nodeId
+                    }, '*');
                 }
             });
 
-            available = true;
-            window.debugAvailable = true;
+            if (parent) {
+                parent.postMessage({
+                    type: 'debugReady'
+                }, '*');
+            }
         }
-
     }
     window.initDebugMode = initDebugMode;
 
-    function startDebugMode() {
-        if (!available) {
-            throw new Error('Debug mode is not available.');
-        }
-
+    function startDebug() {
         active = true;
         debugSetActive(true);
-        cachedPic = debugGetPicture();
+        debugHighlightShape(true, -1);
 
-        parent.initTreeDialog(cachedPic, debugHighlightShape,
-            debugDrawShape, () => stopDebugMode());
-        parent.openTreeDialog(0);
-
-        window.debugActive = true;
-        parent.updateUI();
+        parent.postMessage({
+            type: 'debugActive',
+            fullPic: debugGetPicture()
+        }, '*');
     }
-    window.startDebugMode = startDebugMode;
 
-    function stopDebugMode() {
+    function stopDebug() {
         active = false;
         debugSetActive(false);
-        cachedPic = null;
-
         debugHighlightShape(true, -1);
-        debugHighlightShape(false, -1);
 
-        parent.destroyTreeDialog();
-
-        window.debugActive = false;
-        parent.updateUI();
+        parent.postMessage({
+            type: 'debugFinished'
+        }, '*');
     }
-    window.stopDebugMode = stopDebugMode;
 
-    function toggleDebugMode() {
-        if (active) {
-            stopDebugMode();
-        } else {
-            startDebugMode();
+    window.addEventListener('message', event => {
+        if (!event.data.type) return;
+
+        if (event.data.type === 'debugHighlight') {
+            if (active) debugHighlightShape(true, event.data.nodeId);
+        } else if (event.data.type === 'debugSelect') {
+            if (active) debugHighlightShape(false, event.data.nodeId);
+        } else if (event.data.type === 'stopDebug') {
+            stopDebug();
+        } else if (event.data.type === 'startDebug') {
+            startDebug();
         }
-    }
-    window.toggleDebugMode = toggleDebugMode;
+    });
 })();

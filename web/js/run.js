@@ -23,6 +23,14 @@
 window.programStartTime = Date.now();
 window.hasObservableOutput = false;
 
+window.addEventListener('message', event => {
+    if (!event.data.type) return;
+
+    if (event.data.type === 'graphicsShown') {
+        window.dispatchEvent(new Event('resize'));
+    }
+});
+
 function addMessage(type, str) {
     const recentStart = Date.now() - window.programStartTime < 1000;
     const printDeferred = window.hasObservableOutput || !recentStart;
@@ -43,9 +51,12 @@ function addMessage(type, str) {
             }
         }
 
-        if (window.parent && window.parent.printMessage) {
-            if (str !== '') window.parent.printMessage(type, str);
-            if (type === 'error') window.parent.markFailed();
+        if (window.parent) {
+            window.parent.postMessage({
+                type: 'consoleOut',
+                msgType: type,
+                str: str
+            }, '*');
             return;
         }
     } catch (e) {
@@ -57,7 +68,9 @@ function addMessage(type, str) {
 
 function notifyStarted() {
     try {
-        window.parent.notifyProgramStarted();
+        window.parent.postMessage({
+            type: 'programStarted'
+        }, '*');
     } catch (e) {
         // Ignore exceptions, which are expected if there's no parent.
     }
@@ -74,14 +87,9 @@ function showCanvas() {
             return;
         }
 
-        const runner = window.parent.document.getElementById('runner');
-        if (!runner) {
-            return;
-        }
-
-        runner.style.display = '';
-        runner.focus();
-        runner.contentWindow.focus();
+        window.parent.postMessage({
+            type: 'showGraphics'
+        }, '*');
     } catch (e) {
         // Ignore, and assume the canvas is already shown.
     }
@@ -91,6 +99,8 @@ function start() {
     const modeMatch = /\bmode=([A-Za-z0-9]*)\b/.exec(location.search);
     window.buildMode = modeMatch ? modeMatch[1] : 'codeworld';
 
+    let hasWarnedStdin = false;
+
     window.h$base_writeStdout = (fd, fdo, buf, buf_offset, n, c) => {
         addMessage('log', h$decodeUtf8(buf, n, buf_offset));
         c(n);
@@ -99,6 +109,14 @@ function start() {
         addMessage('log', h$decodeUtf8(buf, n, buf_offset));
         c(n);
     };
+    window.h$base_readStdin = (fd, fdo, buf, buf_offset, n, c) => {
+        if (!hasWarnedStdin) {
+            addMessage('warning', 'CodeWorld programs cannot read from the console.');
+            hasWarnedStdin = true;
+        }
+        c(0);
+    };
+
     window.h$log = (...args) => {
         let s = '';
         for (let i = 0; i < args.length; i++) {
@@ -114,6 +132,7 @@ function start() {
     };
     window.h$base_stdout_fd.write = window.h$base_writeStdout;
     window.h$base_stderr_fd.write = window.h$base_writeStderr;
+    window.h$base_stdin_fd.read = window.h$base_readStdin;
 
     // Update program start time in case loading/setup took a while.
     window.programStartTime = Date.now();

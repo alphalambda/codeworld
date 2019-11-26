@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 
@@ -32,11 +33,14 @@ import Control.Monad.IO.Class
 import Control.Monad.State
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
-import Data.List (intercalate)
+import Data.List (isPrefixOf, intercalate, foldl')
+import Data.Map (Map)
+import qualified Data.Map as M
 import Data.Maybe
 import Data.Monoid
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import ErrorSanitizer
 import Language.Haskell.Exts
@@ -46,6 +50,27 @@ import System.FilePath
 import System.IO
 import System.IO.Temp (withSystemTempDirectory)
 import System.Process
+import Text.Regex.TDFA
+import Text.Regex.TDFA.Text
+
+import qualified "ghc" Config as GHC
+import qualified "ghc" DynFlags as GHC
+import qualified "ghc" FastString as GHC
+import qualified "ghc" Fingerprint as GHC
+import qualified "ghc-boot-th" GHC.LanguageExtensions.Type as GHC
+import qualified "ghc" HeaderInfo as GHC
+import qualified "ghc" HsExtension as GHC
+import qualified "ghc" HsSyn as GHC
+import qualified "ghc" HscTypes as GHC
+import qualified "ghc" Lexer as GHC
+import qualified "ghc" Module as GHC
+import qualified "ghc" Outputable as GHC
+import qualified "ghc" Panic as GHC
+import qualified "ghc" Parser as GHC
+import qualified "ghc" Platform as GHC
+import qualified "ghc" SrcLoc as GHC
+import qualified "ghc" StringBuffer as GHC
+-- import qualified "ghc" ToolSettings as GHC
 
 data Stage
     = ErrorCheck
@@ -66,18 +91,21 @@ data CompileStatus
     deriving (Eq, Show, Ord)
 
 data CompileState = CompileState {
-    compileMode         :: SourceMode,
-    compileStage        :: Stage,
-    compileSourcePath   :: FilePath,
-    compileOutputPath   :: FilePath,
-    compileVerbose      :: Bool,
-    compileTimeout      :: Int,
-    compileStatus       :: CompileStatus,
-    compileErrors       :: [Diagnostic],
-    compileReadSource   :: Maybe ByteString,
-    compileParsedSource :: Maybe ParsedCode
+    compileMode            :: SourceMode,
+    compileStage           :: Stage,
+    compileBuildDir        :: FilePath,
+    compileSourcePaths     :: [FilePath],
+    compileModuleFinder    :: String -> IO (Maybe FilePath),
+    compileOutputPath      :: FilePath,
+    compileVerbose         :: Bool,
+    compileTimeout         :: Int,
+    compileStatus          :: CompileStatus,
+    compileErrors          :: [Diagnostic],
+    compileMainSourcePath  :: Maybe FilePath,
+    compileReadSource      :: Map FilePath ByteString,
+    compileParsedSource    :: Map FilePath ParsedCode,
+    compileGHCParsedSource :: Map FilePath GHCParsedCode
     }
-    deriving Show
 
 type MonadCompile m = (MonadState CompileState m, MonadIO m, MonadMask m)
 
@@ -87,27 +115,75 @@ type Diagnostic = (SrcSpanInfo, CompileStatus, String)
 
 data ParsedCode = Parsed (Module SrcSpanInfo) | NoParse deriving Show
 
-getSourceCode :: MonadCompile m => m ByteString
-getSourceCode = do
+data GHCParsedCode = GHCParsed (GHC.HsModule GHC.GhcPs) | GHCNoParse
+
+getSourceCode :: MonadCompile m => FilePath -> m ByteString
+getSourceCode src = do
     cached <- gets compileReadSource
-    case cached of
+    case M.lookup src cached of
         Just source -> return source
         Nothing -> do
-            src <- gets compileSourcePath
             source <- liftIO $ B.readFile src
-            modify $ \state -> state { compileReadSource = Just source }
+            modify $ \state -> state { compileReadSource = M.insert src source cached }
             return source
 
-getParsedCode :: MonadCompile m => m ParsedCode
-getParsedCode = do
+getParsedCode :: MonadCompile m => FilePath -> m ParsedCode
+getParsedCode src = do
     cached <- gets compileParsedSource
-    case cached of
+    case M.lookup src cached of
         Just parsed -> return parsed
         Nothing -> do
-            source <- getSourceCode
+            source <- getSourceCode src
             parsed <- parseCode ["TupleSections"] (decodeUtf8 source)
-            modify $ \state -> state { compileParsedSource = Just parsed }
+            modify $ \state -> state { compileParsedSource = M.insert src parsed cached }
             return parsed
+
+getGHCParsedCode :: MonadCompile m => FilePath -> m GHCParsedCode
+getGHCParsedCode src = do
+    cached <- gets compileGHCParsedSource
+    case M.lookup src cached of
+        Just parsed -> return parsed
+        Nothing -> do
+            source <- getSourceCode src
+            parsed <- ghcParseCode ["TupleSections"] (decodeUtf8 source)
+            modify $ \state -> state { compileGHCParsedSource = M.insert src parsed cached }
+            return parsed
+
+getMainSourcePath :: MonadCompile m => m FilePath
+getMainSourcePath = do
+    mainPath <- gets compileMainSourcePath
+    case mainPath of
+        Just path -> return path
+        Nothing -> do
+            srcs <- gets compileSourcePaths
+            parsed <- mapM getGHCParsedCode srcs
+            let matched = [ src | (src, GHCParsed mod) <- zip srcs parsed
+                                , isMainModName (GHC.hsmodName mod) ]
+            let result = head (matched ++ srcs)
+            modify $ \state -> state { compileMainSourcePath = Just result }
+            return result
+  where
+    isMainModName Nothing = True
+    isMainModName (Just (GHC.L _ modName))
+        = GHC.moduleNameString modName == "Main"
+
+getMainSourceCode :: MonadCompile m => m ByteString
+getMainSourceCode = getMainSourcePath >>= getSourceCode
+
+getMainParsedCode :: MonadCompile m => m ParsedCode
+getMainParsedCode = getMainSourcePath >>= getParsedCode
+
+getMainGHCParsedCode :: MonadCompile m => m GHCParsedCode
+getMainGHCParsedCode = getMainSourcePath >>= getGHCParsedCode
+
+getMainModuleName :: MonadCompile m => m String
+getMainModuleName = do
+    result <- getMainGHCParsedCode
+    return $ case result of
+        GHCNoParse -> "Main"
+        GHCParsed mod -> case GHC.hsmodName mod of
+            Nothing -> "Main"
+            Just (GHC.L _ name) -> GHC.moduleNameString name
 
 getDiagnostics :: MonadCompile m => m [Diagnostic]
 getDiagnostics = do
@@ -146,16 +222,94 @@ codeworldModeExts =
 parseCode :: MonadCompile m => [String] -> Text -> m ParsedCode
 parseCode extraExts src = do
     sourceMode <- gets compileMode
-    let result = parseFileContentsWithMode mode (T.unpack src)
-        modeExts | sourceMode == "codeworld" = codeworldModeExts
-             | otherwise = []
-        extVals = [ parseExtension ext | ext <- modeExts ++ extraExts ]
+    let exts | sourceMode == "codeworld" = codeworldModeExts ++ extraExts
+             | otherwise                 = extraExts
         mode = defaultParseMode { parseFilename = "program.hs",
-                                  extensions = extVals }
-
-    return $ case result of
+                                  extensions = map parseExtension exts }
+    return $ case parseFileContentsWithMode mode (T.unpack src) of
         ParseOk mod -> Parsed mod
         ParseFailed _ _ -> NoParse
+
+ghcExtensionsByName :: Map String GHC.Extension
+ghcExtensionsByName = M.fromList [
+    (GHC.flagSpecName spec, GHC.flagSpecFlag spec)
+    | spec <- GHC.xFlags ]
+
+applyExtensionToFlags :: GHC.DynFlags -> String -> GHC.DynFlags
+applyExtensionToFlags dflags name
+  | "No" `isPrefixOf` name =
+        GHC.xopt_unset dflags $ fromJust $ M.lookup (drop 2 name) ghcExtensionsByName
+  | otherwise =
+        GHC.xopt_set dflags $ fromJust $ M.lookup name ghcExtensionsByName
+
+ghcParseCode :: MonadCompile m => [String] -> Text -> m GHCParsedCode
+ghcParseCode extraExts src = do
+    sourceMode <- gets compileMode
+    let buffer = GHC.stringToStringBuffer (T.unpack src)
+        exts | sourceMode == "codeworld" = codeworldModeExts ++ extraExts
+             | otherwise                 = extraExts
+        dflags = foldl' applyExtensionToFlags fakeDynFlags exts
+    dflagsWithPragmas <- liftIO $
+        fromMaybe dflags <$> parsePragmasIntoDynFlags dflags "program.hs" buffer
+    let location = GHC.mkRealSrcLoc (GHC.mkFastString "program.hs") 1 1
+        state    = GHC.mkPState dflagsWithPragmas buffer location
+    return $ case GHC.unP GHC.parseModule state of
+        GHC.POk _ (GHC.L _ mod) -> GHCParsed mod
+        GHC.PFailed _ _ _       -> GHCNoParse
+
+fakeDynFlags ::GHC.DynFlags
+fakeDynFlags = GHC.defaultDynFlags fakeSettings fakeLlvmConfig
+
+fakeSettings :: GHC.Settings
+fakeSettings =
+    GHC.Settings {
+        GHC.sProgramName = "ghcjs",
+        GHC.sProjectVersion = GHC.cProjectVersion,
+        GHC.sTargetPlatform = GHC.Platform {
+            GHC.platformWordSize = 8,
+            GHC.platformOS = GHC.OSUnknown,
+            GHC.platformUnregisterised = True
+        },
+        GHC.sPlatformConstants = GHC.PlatformConstants {
+            GHC.pc_DYNAMIC_BY_DEFAULT = False,
+            GHC.pc_WORD_SIZE = 8
+        },
+        GHC.sOpt_P_fingerprint = GHC.fingerprint0
+    }
+
+fakeLlvmConfig :: (GHC.LlvmTargets, GHC.LlvmPasses)
+fakeLlvmConfig = ([], [])
+
+parsePragmasIntoDynFlags :: GHC.DynFlags
+                         -> FilePath
+                         -> GHC.StringBuffer
+                         -> IO (Maybe GHC.DynFlags)
+parsePragmasIntoDynFlags dflags f src =
+    GHC.handleGhcException (const $ return Nothing) $
+        GHC.handleSourceError (const $ return Nothing) $ do
+            let opts = GHC.getOptions dflags src f
+            (dflagsWithPragmas, _, _) <- GHC.parseDynamicFilePragma dflags opts
+            return $ Just dflagsWithPragmas
+
+copyModuleWithTransform
+    :: MonadCompile m
+    => FilePath
+    -> (GHC.HsModule GHC.GhcPs -> GHC.HsModule GHC.GhcPs)
+    -> m (Maybe FilePath)
+copyModuleWithTransform f transform = do
+    src <- liftIO $ decodeUtf8 <$> B.readFile f
+    let commentsAndPragmas = filter (=~ ("\\s*{-.*-}\\s*" :: Text)) (T.lines src)
+    parseResult <- ghcParseCode [] src
+    case parseResult of
+        GHCNoParse -> return Nothing
+        GHCParsed mod -> do
+            buildDir <- gets compileBuildDir
+            liftIO $ do
+                (out, h) <- openTempFile buildDir "imported.hs"
+                T.hPutStrLn h (T.unlines commentsAndPragmas)
+                GHC.printForUser fakeDynFlags h GHC.neverQualify $ GHC.ppr (transform mod)
+                hClose h
+                return (Just out)
 
 addDiagnostics :: MonadCompile m => [Diagnostic] -> m ()
 addDiagnostics diags = modify $ \state -> state {
@@ -174,15 +328,16 @@ ifSucceeding m = do
     status <- gets compileStatus
     when (status == CompileSuccess) m
 
-withTimeout :: Int -> IO a -> IO (Maybe a)
+withTimeout :: forall a. Int -> IO a -> IO (Maybe a)
 withTimeout micros action = do
-    result <- newEmptyMVar
+    result :: MVar (Maybe (Either SomeException a)) <- newEmptyMVar
     killer <- forkIO $ threadDelay micros >> putMVar result Nothing
-    runner <- forkIO $ action >>= putMVar result . Just
+    runner <- forkIO $ do
+        try action >>= putMVar result . Just
     r <- takeMVar result
     killThread killer
     killThread runner
-    return r
+    sequence $ either throwM return <$> r
 
 -- Runs a command, where if the thread terminates, the subprocess is automatically
 -- killed.
@@ -208,10 +363,10 @@ formatLocation :: SrcSpanInfo -> String
 formatLocation spn@(SrcSpanInfo (SrcSpan fn l1 c1 l2 c2) _)
   | spn == noSrcSpan = ""
   | l1 /= l2         = fn ++ ":(" ++ show l1 ++ "," ++ show c1 ++ ")-(" ++
-                       show l2 ++ "," ++ show (max 1 (c2 - 1)) ++ "): "
+                       show l2 ++ "," ++ show (max 1 (c2 - 1)) ++ ")"
   | c1 < c2 - 1      = fn ++ ":" ++ show l1 ++ ":" ++ show c1 ++ "-" ++
-                       show (max 1 (c2 - 1)) ++ ": "
-  | otherwise        = fn ++ ":" ++ show l1 ++ ":" ++ show c1 ++ ": "
+                       show (max 1 (c2 - 1))
+  | otherwise        = fn ++ ":" ++ show l1 ++ ":" ++ show c1
 
 srcSpanFor :: Text -> Int -> Int -> SrcSpanInfo
 srcSpanFor src off len =

@@ -10,7 +10,6 @@ copyright:                                  (c) 2019, The CodeWorld Authors
 category:                                   Command Line
 build-type:                                 Simple
 cabal-version:                              >= 1.10
-extra-source-files:                         README.md
 
 source-repository head
   type:                                     git
@@ -23,7 +22,7 @@ library
                                             -Wall
                                             -fwarn-unused-imports
   build-depends:                            base >= 4.7 && < 5
-                                          , bcrypt
+                                          , bcrypt >= 0.0.11
                                           , bytestring
                                           , directory
                                           , hashable
