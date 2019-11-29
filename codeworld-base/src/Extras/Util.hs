@@ -343,7 +343,7 @@ list(f) = [f(i) | i <- [1..]]
 -- list @[f(1),f(2),f(3),...,f(n)]@,
 -- where @n@ is the given number.
 listn :: (Number -> value, Number) -> [value]
-listn(f,n) = [f(i) | i <- [1..n]]
+listn(f,n) = [f(i) | i <- [1..truncation(n)]]
 
 -- | A list containing all the elements of the given list except the
 -- last few. Example: @butLast([1,2,3,4],1)@ is @[1,2,3]@.
