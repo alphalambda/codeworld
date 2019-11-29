@@ -108,7 +108,7 @@ checkCodeConventions = do
     checkOldStyleMixed mode
     checkOldStyleGray
     when (mode == "codeworld") $ do
-        checkLsuModules
+        -- checkLsuModules
         checkOldStyleMain
         checkExcludedSyntax
         checkFunctionParentheses
