@@ -156,15 +156,16 @@ viaOffscreen :: MonadCanvas m => Color -> (Color -> m ()) -> m ()
 viaOffscreen (RGBA r g b a) pic = do
     w <- CM.getScreenWidth
     h <- CM.getScreenHeight
-    img <- CM.newImage (round w) (round h)
-    CM.withImage img $ do
-        setupScreenContext (round w) (round h)
-        pic (RGBA r g b 1)
-    CM.saveRestore $ do
-        px <- pixelSize
-        CM.scale px (-px)
-        CM.globalAlpha a
-        CM.drawImage img (round (-w/2)) (round (-h/2)) (round w) (round h)
+    when (w > 0.5 && h > 0.5) $ do
+        img <- CM.newImage (round w) (round h)
+        CM.withImage img $ do
+            setupScreenContext (round w) (round h)
+            pic (RGBA r g b 1)
+        CM.saveRestore $ do
+            px <- pixelSize
+            CM.scale px (-px)
+            CM.globalAlpha a
+            CM.drawImage img (round (-w/2)) (round (-h/2)) (round w) (round h)
 
 followPath :: MonadCanvas m => [Point] -> Bool -> Bool -> m ()
 followPath [] _ _ = return ()
@@ -281,6 +282,9 @@ drawPicture (Translate _ x y p) ds = drawPicture p (translateDS x y ds)
 drawPicture (Scale _ x y p) ds = drawPicture p (scaleDS x y ds)
 drawPicture (Dilate _ k p) ds = drawPicture p (scaleDS k k ds)
 drawPicture (Rotate _ r p) ds = drawPicture p (rotateDS r ds)
+drawPicture (Clip _ x y p) ds = do
+    withDS ds $ followPath (rectangleVertices x y) True False
+    CM.saveRestore $ CM.clip >> drawPicture p ds
 drawPicture (Pictures _ ps) ds = forM_ (reverse ps) $ \p -> drawPicture p ds
 drawPicture (PictureAnd _ ps) ds = forM_ (reverse ps) $ \p -> drawPicture p ds
 
@@ -314,6 +318,9 @@ pictureContains (Translate _ x y p) ds pt = pictureContains p (translateDS x y d
 pictureContains (Scale _ x y p) ds pt = pictureContains p (scaleDS x y ds) pt
 pictureContains (Dilate _ k p) ds pt = pictureContains p (scaleDS k k ds) pt
 pictureContains (Rotate _ r p) ds pt = pictureContains p (rotateDS r ds) pt
+pictureContains (Clip _ x y p) ds pt =
+    (&&) <$> polygonContains (rectangleVertices x y) False ds pt
+         <*> pictureContains p ds pt
 pictureContains (Pictures _ ps) ds pt = orM [pictureContains p ds pt | p <- ps]
 pictureContains (PictureAnd _ ps) ds pt = orM [pictureContains p ds pt | p <- ps]
 
@@ -328,6 +335,7 @@ isSimplePic (Translate _ _ _ p) = isSimplePic p
 isSimplePic (Scale _ _ _ p) = isSimplePic p
 isSimplePic (Dilate _ _ p) = isSimplePic p
 isSimplePic (Rotate _ _ p) = isSimplePic p
+isSimplePic (Clip _ _ _ p) = isSimplePic p
 isSimplePic (Color _ c p) = not (isOpaque c) || isSimplePic p
 isSimplePic _ = True
 
@@ -495,17 +503,10 @@ getChildNodes (Translate _ _ _ p) = [p]
 getChildNodes (Scale _ _ _ p) = [p]
 getChildNodes (Dilate _ _ p) = [p]
 getChildNodes (Rotate _ _ p) = [p]
+getChildNodes (Clip _ _ _ p) = [p]
 getChildNodes (Pictures _ ps) = ps
 getChildNodes (PictureAnd _ ps) = ps
 getChildNodes _ = []
-
-getRootTransform :: Picture -> DrawState -> DrawState
-getRootTransform (Color _ c _) = setColorDS c
-getRootTransform (Translate _ x y _) = translateDS x y
-getRootTransform (Scale _ x y _) = scaleDS x y
-getRootTransform (Dilate _ k _) = scaleDS k k
-getRootTransform (Rotate _ r _) = rotateDS r
-getRootTransform _ = id
 
 findTopShape :: MonadCanvas m => DrawState -> Picture -> Double -> Double -> m (Maybe NodeId)
 findTopShape ds pic x y = do
@@ -514,19 +515,39 @@ findTopShape ds pic x y = do
         then Just (NodeId n)
         else Nothing
   where
-    searchSingle ds pic x y = case getChildNodes pic of
-        [] -> do
-            contained <- pictureContains pic ds (x, y)
-            case contained of
-                True -> return (True, 0)
-                False -> return (False, 1)
-        pics -> fmap (+ 1) <$> searchMulti (getRootTransform pic ds) pics x y
+    searchSingle ds (Color _ _ p) x y =
+        fmap (+ 1) <$> searchSingle ds p x y
+    searchSingle ds (Translate _ dx dy p) x y =
+        fmap (+ 1) <$> searchSingle (translateDS dx dy ds) p x y
+    searchSingle ds (Scale _ sx sy p) x y =
+        fmap (+ 1) <$> searchSingle (scaleDS sx sy ds) p x y
+    searchSingle ds (Dilate _ k p) x y =
+        fmap (+ 1) <$> searchSingle (scaleDS k k ds) p x y
+    searchSingle ds (Rotate _ a p) x y =
+        fmap (+ 1) <$> searchSingle (rotateDS a ds) p x y
+    searchSingle ds (Clip _ w h p) x y = do
+        inClip <- polygonContains (rectangleVertices w h) False ds (x, y)
+        fmap (+ 1) <$> case inClip of
+            True -> searchSingle ds p x y
+            False -> return (False, countNodes p)
+    searchSingle ds (Pictures _ ps) x y =
+        fmap (+ 1) <$> searchMulti ds ps x y
+    searchSingle ds (PictureAnd _ ps) x y =
+        fmap (+ 1) <$> searchMulti ds ps x y
+    searchSingle ds p x y = do
+        contained <- pictureContains p ds (x, y)
+        case contained of
+            True -> return (True, 0)
+            False -> return (False, 1)
+
     searchMulti _ [] _ _ = return (False, 0)
     searchMulti ds (pic:pics) x y = do
         (found, count) <- searchSingle ds pic x y
         case found of
             True -> return (True, count)
             False -> fmap (+ count) <$> searchMulti ds pics x y
+
+    countNodes p = 1 + sum (map countNodes (getChildNodes p))
 
 -- If a picture is found, the result will include an array of the base picture
 -- and all transformations.
@@ -545,9 +566,9 @@ trim x y
   | otherwise = take mid y ++ "..." ++ (reverse $ take mid $ reverse y)
   where mid = (x - 3) `div` 2
 
-showFloat :: Double -> String
-showFloat x
-  | haskellMode && x < 0 = "(" ++ result ++ ")"
+showFloat :: Bool -> Double -> String
+showFloat needNegParens x
+  | needNegParens && x < 0 = "(" ++ result ++ ")"
   | otherwise = result
   where result = stripZeros (showFFloatAlt (Just 4) x "")
         stripZeros = reverse . dropWhile (== '.') . dropWhile (== '0') . reverse
@@ -556,7 +577,7 @@ showPoints :: [Point] -> String
 showPoints pts =
     "[" ++
     intercalate ", " [
-        "(" ++ showFloat x ++ ", " ++ showFloat y ++ ")"
+        "(" ++ showFloat False x ++ ", " ++ showFloat False y ++ ")"
         | (x, y) <- pts
     ] ++
     "]"
@@ -574,30 +595,34 @@ showColor c@(RGBA r g b a)
   | c == pink = "pink"
   | c == purple = "purple"
   | c == gray = "gray"
-  | haskellMode, a == 1 = printf "(RGB %s %s %s)" (showFloat r) (showFloat g) (showFloat b)
-  | a == 1 = printf "RGB(%s, %s, %s)" (showFloat r) (showFloat g) (showFloat b)
-  | haskellMode = printf "(RGBA %s %s %s %s)" (showFloat r) (showFloat g) (showFloat b) (showFloat a)
-  | otherwise = printf "RGBA(%s, %s, %s, %s)" (showFloat r) (showFloat g) (showFloat b) (showFloat a)
+  | haskellMode, a == 1 =
+      printf "(RGB %s %s %s)" (showFloat True r) (showFloat True g) (showFloat True b)
+  | a == 1 =
+      printf "RGB(%s, %s, %s)" (showFloat False r) (showFloat False g) (showFloat False b)
+  | haskellMode =
+      printf "(RGBA %s %s %s %s)" (showFloat True r) (showFloat True g) (showFloat True b) (showFloat True a)
+  | otherwise =
+      printf "RGBA(%s, %s, %s, %s)" (showFloat False r) (showFloat False g) (showFloat False b) (showFloat False a)
 
 describePicture :: Picture -> String
 describePicture (Rectangle _ w h)
-  | haskellMode = printf "rectangle %s %s" (showFloat w) (showFloat h)
-  | otherwise   = printf "rectangle(%s, %s)" (showFloat w) (showFloat h)
+  | haskellMode = printf "rectangle %s %s" (showFloat True w) (showFloat True h)
+  | otherwise   = printf "rectangle(%s, %s)" (showFloat False w) (showFloat False h)
 describePicture (SolidRectangle _ w h)
-  | haskellMode = printf "solidRectangle %s %s" (showFloat w) (showFloat h)
-  | otherwise   = printf "solidRectangle(%s, %s)" (showFloat w) (showFloat h)
+  | haskellMode = printf "solidRectangle %s %s" (showFloat True w) (showFloat True h)
+  | otherwise   = printf "solidRectangle(%s, %s)" (showFloat False w) (showFloat False h)
 describePicture (ThickRectangle _ lw w h)
-  | haskellMode = printf "thickRectangle %s %s %s" (showFloat lw) (showFloat w) (showFloat h)
-  | otherwise   = printf "thickRectangle(%s, %s, %s)" (showFloat w) (showFloat h) (showFloat lw)
+  | haskellMode = printf "thickRectangle %s %s %s" (showFloat True lw) (showFloat True w) (showFloat True h)
+  | otherwise   = printf "thickRectangle(%s, %s, %s)" (showFloat False w) (showFloat False h) (showFloat False lw)
 describePicture (Circle _ r)
-  | haskellMode = printf "circle %s" (showFloat r)
-  | otherwise   = printf "circle(%s)" (showFloat r)
+  | haskellMode = printf "circle %s" (showFloat True r)
+  | otherwise   = printf "circle(%s)" (showFloat False r)
 describePicture (SolidCircle _ r)
-  | haskellMode = printf "solidCircle %s" (showFloat r)
-  | otherwise   = printf "solidCircle(%s)" (showFloat r)
+  | haskellMode = printf "solidCircle %s" (showFloat True r)
+  | otherwise   = printf "solidCircle(%s)" (showFloat False r)
 describePicture (ThickCircle _ lw r)
-  | haskellMode = printf "thickCircle %s %s" (showFloat lw) (showFloat r)
-  | otherwise   = printf "thickCircle(%s, %s)" (showFloat r) (showFloat lw)
+  | haskellMode = printf "thickCircle %s %s" (showFloat True lw) (showFloat True r)
+  | otherwise   = printf "thickCircle(%s, %s)" (showFloat False r) (showFloat False lw)
 describePicture (SolidPolygon _ pts)
   | haskellMode = printf "solidPolygon %s" (showPoints pts)
   | otherwise   = printf "solidPolygon(%s)" (showPoints pts)
@@ -608,35 +633,35 @@ describePicture (Polygon _ pts)
   | haskellMode = printf "polygon %s" (showPoints pts)
   | otherwise   = printf "polygon(%s)" (showPoints pts)
 describePicture (ThickPolygon _ pts w)
-  | haskellMode = printf "thickPolygon %s %s" (showFloat w) (showPoints pts)
-  | otherwise   = printf "thickPolygon(%s, %s)" (showPoints pts) (showFloat w)
+  | haskellMode = printf "thickPolygon %s %s" (showFloat True w) (showPoints pts)
+  | otherwise   = printf "thickPolygon(%s, %s)" (showPoints pts) (showFloat False w)
 describePicture (ClosedCurve _ pts)
   | haskellMode = printf "closedCurve %s" (showPoints pts)
   | otherwise   = printf "closedCurve(%s)" (showPoints pts)
 describePicture (ThickClosedCurve _ pts w)
-  | haskellMode = printf "thickClosedCurve %s %s" (showFloat w) (showPoints pts)
-  | otherwise   = printf "thickClosedCurve(%s, %s)" (showPoints pts) (showFloat w)
+  | haskellMode = printf "thickClosedCurve %s %s" (showFloat True w) (showPoints pts)
+  | otherwise   = printf "thickClosedCurve(%s, %s)" (showPoints pts) (showFloat False w)
 describePicture (Polyline _ pts)
   | haskellMode = printf "polyline %s" (showPoints pts)
   | otherwise   = printf "polyline(%s)" (showPoints pts)
 describePicture (ThickPolyline _ pts w)
-  | haskellMode = printf "thickPolyline %s %s" (showFloat w) (showPoints pts)
-  | otherwise   = printf "thickPolyline(%s, %s)" (showPoints pts) (showFloat w)
+  | haskellMode = printf "thickPolyline %s %s" (showFloat True w) (showPoints pts)
+  | otherwise   = printf "thickPolyline(%s, %s)" (showPoints pts) (showFloat False w)
 describePicture (Curve _ pts)
   | haskellMode = printf "curve %s" (showPoints pts)
   | otherwise   = printf "curve(%s)" (showPoints pts)
 describePicture (ThickCurve _ pts w)
-  | haskellMode = printf "thickCurve %s %s" (showFloat w) (showPoints pts)
-  | otherwise   = printf "thickCurve(%s, %s)" (showPoints pts) (showFloat w)
+  | haskellMode = printf "thickCurve %s %s" (showFloat True w) (showPoints pts)
+  | otherwise   = printf "thickCurve(%s, %s)" (showPoints pts) (showFloat False w)
 describePicture (Sector _ b e r)
-  | haskellMode = printf "sector %s %s %s" (showFloat b) (showFloat e) (showFloat r)
-  | otherwise   = printf "sector(%s°, %s°, %s)" (showFloat (180 * b / pi)) (showFloat (180 * e / pi)) (showFloat r)
+  | haskellMode = printf "sector %s %s %s" (showFloat True b) (showFloat True e) (showFloat True r)
+  | otherwise   = printf "sector(%s°, %s°, %s)" (showFloat False (180 * b / pi)) (showFloat False (180 * e / pi)) (showFloat False r)
 describePicture (Arc _ b e r)
-  | haskellMode = printf "arc %s %s %s" (showFloat b) (showFloat e) (showFloat r)
-  | otherwise   = printf "arc(%s°, %s°, %s)" (showFloat (180 * b / pi)) (showFloat (180 * e / pi)) (showFloat r)
+  | haskellMode = printf "arc %s %s %s" (showFloat True b) (showFloat True e) (showFloat True r)
+  | otherwise   = printf "arc(%s°, %s°, %s)" (showFloat False (180 * b / pi)) (showFloat False (180 * e / pi)) (showFloat False r)
 describePicture (ThickArc _ b e r w)
-  | haskellMode = printf "thickArc %s %s %s %s" (showFloat w) (showFloat b) (showFloat e) (showFloat r)
-  | otherwise   = printf "thickArc(%s°, %s°, %s, %s)" (showFloat (180 * b / pi)) (showFloat (180 * e / pi)) (showFloat r) (showFloat w)
+  | haskellMode = printf "thickArc %s %s %s %s" (showFloat True w) (showFloat True b) (showFloat True e) (showFloat True r)
+  | otherwise   = printf "thickArc(%s°, %s°, %s, %s)" (showFloat False (180 * b / pi)) (showFloat False (180 * e / pi)) (showFloat False r) (showFloat False w)
 describePicture (Lettering _ txt)
   | haskellMode = printf "lettering %s" (show txt)
   | otherwise   = printf "lettering(%s)" (show txt)
@@ -648,17 +673,20 @@ describePicture (Color _ c _)
   | haskellMode = printf "colored %s" (showColor c)
   | otherwise   = printf "colored(..., %s)" (showColor c)
 describePicture (Translate _ x y _)
-  | haskellMode = printf "translated %s %s" (showFloat x) (showFloat y)
-  | otherwise   = printf "translated(..., %s, %s)" (showFloat x) (showFloat y)
+  | haskellMode = printf "translated %s %s" (showFloat True x) (showFloat True y)
+  | otherwise   = printf "translated(..., %s, %s)" (showFloat False x) (showFloat False y)
 describePicture (Scale _ x y _)
-  | haskellMode = printf "scaled %s %s" (showFloat x) (showFloat y)
-  | otherwise   = printf "scaled(..., %s, %s)" (showFloat x) (showFloat y)
+  | haskellMode = printf "scaled %s %s" (showFloat True x) (showFloat True y)
+  | otherwise   = printf "scaled(..., %s, %s)" (showFloat False x) (showFloat False y)
 describePicture (Rotate _ angle _)
-  | haskellMode = printf "rotated %s" (showFloat angle)
-  | otherwise   = printf "rotated(..., %s°)" (showFloat (180 * angle / pi))
+  | haskellMode = printf "rotated %s" (showFloat True angle)
+  | otherwise   = printf "rotated(..., %s°)" (showFloat False (180 * angle / pi))
+describePicture (Clip _ x y _)
+  | haskellMode = printf "clipped %s %s" (showFloat True x) (showFloat True y)
+  | otherwise   = printf "rotated(..., %s, %s)" (showFloat False x) (showFloat False y)
 describePicture (Dilate _ k _)
-  | haskellMode = printf "dilated %s" (showFloat k)
-  | otherwise   = printf "dilated(..., %s)" (showFloat k)
+  | haskellMode = printf "dilated %s" (showFloat True k)
+  | otherwise   = printf "dilated(..., %s)" (showFloat False k)
 describePicture (Sketch _ name _ _ _) = T.unpack name
 describePicture (CoordinatePlane _) = "coordinatePlane"
 describePicture (Pictures _ _)
@@ -696,6 +724,7 @@ getPictureSrcLoc (Translate loc _ _ _) = loc
 getPictureSrcLoc (Scale loc _ _ _) = loc
 getPictureSrcLoc (Dilate loc _ _) = loc
 getPictureSrcLoc (Rotate loc _ _) = loc
+getPictureSrcLoc (Clip loc _ _ _) = loc
 getPictureSrcLoc (Sketch loc _ _ _ _) = loc
 getPictureSrcLoc (CoordinatePlane loc) = loc
 getPictureSrcLoc (Pictures loc _) = loc
@@ -732,7 +761,7 @@ createFrameRenderer canvas = do
         withScreen (elementFromCanvas offscreenCanvas) rect (drawFrame pic)
         cw <- ClientRect.getWidth rect
         ch <- ClientRect.getHeight rect
-        when (cw > 0 && ch > 0) $
+        when (cw > 0.5 && ch > 0.5) $
             canvasDrawImage screen (elementFromCanvas offscreenCanvas)
                             0 0 (round cw) (round ch)
 
@@ -784,6 +813,7 @@ pictureToNode = flip State.evalState (NodeId 0) . go
         Scale _ _ _ p -> nodeWithChild pic p
         Dilate _ _ p -> nodeWithChild pic p
         Rotate _ _ p -> nodeWithChild pic p
+        Clip _ _ _ p -> nodeWithChild pic p
         SolidPolygon _ _ -> leafNode pic
         SolidClosedCurve _ _ -> leafNode pic
         Polygon _ _ -> leafNode pic
@@ -1407,6 +1437,8 @@ indexNode True i n (Dilate loc k p)
     = Dilate loc k <$> indexNode True (i + 1) n p
 indexNode True i n (Rotate loc r p)
     = Rotate loc r <$> indexNode True (i + 1) n p
+indexNode True i n (Clip loc x y p)
+    = Clip loc x y <$> indexNode True (i + 1) n p
 indexNode keepTx i n p = go keepTx (i + 1) (getChildNodes p)
   where go _ i [] = Left i
         go keepTx i (pic:pics) =
