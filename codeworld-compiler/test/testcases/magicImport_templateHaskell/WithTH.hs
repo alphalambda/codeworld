@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-
   Copyright 2019 The CodeWorld Authors. All rights reserved.
 
@@ -14,6 +16,4 @@
   limitations under the License.
 -}
 
-import Foo
-
-program = drawingOf(circle(foo))
+foo = 42

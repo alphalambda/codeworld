@@ -14,6 +14,6 @@
   limitations under the License.
 -}
 
-import Foo
+import CompileError
 
-program = drawingOf(circle(foo))
+program = drawingOf(blank)

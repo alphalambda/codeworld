@@ -21,6 +21,7 @@ Library
   Exposed-modules:     Standard,
                        Standard.Debug,
                        Image,
+                       Core,
                        Sketches,
                        Lessons.Bear,
                        Lessons.Logic,

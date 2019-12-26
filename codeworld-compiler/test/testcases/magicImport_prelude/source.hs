@@ -14,6 +14,4 @@
   limitations under the License.
 -}
 
-import Foo
-
 program = drawingOf(circle(foo))

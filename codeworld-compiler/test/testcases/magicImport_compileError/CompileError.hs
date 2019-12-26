@@ -14,6 +14,7 @@
   limitations under the License.
 -}
 
-import Foo
+-- Should parse, but give a compile error.  This is actually tricky,
+-- since parse and scope errors are deferred until runtime.
 
-program = drawingOf(circle(foo))
+type RecursiveAlias = Number -> RecursiveAlias
