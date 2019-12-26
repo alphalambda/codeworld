@@ -18,8 +18,11 @@ cwd=$(pwd)
 
 source base.sh
 
-echo "Not running cabal update"
-# run .  cabal update
+if [ "x$1" = "x-u" ]; then
+	echo "Running cabal update"
+	run .  cabal update
+	shift
+fi
 
 if [ "x$1" = "x-d" ]; then
     rm -rf data/base/* data/codeworld/build/*
