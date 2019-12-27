@@ -138,7 +138,7 @@ initialTurtle = Turtle
 -- >     cond(t,_) = x < 12 && y < 12 where (x,y) = turtlePosition(t)
 -- >     next(t,r) = ( run([mayTurn(r#1), fd(2*r#2)])(t), rest(r,2) )
 -- >     output(t,_) = turtlePosition(t)
--- >     mayTurn(r) = if r < 0.5 then turned else itself
+-- >     mayTurn(r) = if r < 0.5 then turned else pass
 -- >     turned(t) = if turtleAngle(t) < 45 then lt(90)(t) else rt(90)(t)
 -- >
 --
@@ -146,7 +146,7 @@ initialTurtle = Turtle
 -- The turtle starts at the lower left corner of the output,
 -- and it moves until it reaches either the top or the
 -- right side of the output, whichever is reached first. This example
--- uses 'randomDrawingOf' from "Extras.Cw" and 'itself' from "Extras.Util".
+-- uses 'randomDrawingOf' from "Extras.Cw" and 'pass' from "Extras.Util".
 customTurtle :: (Number,Number,Number) -> Turtle
 customTurtle(x,y,angle) = initialTurtle
   { position = (x,y)

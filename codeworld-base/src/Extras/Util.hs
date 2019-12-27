@@ -42,7 +42,7 @@ module Extras.Util(
     , printedDecimals, printedNumbers, printedPoint
     -- * Other useful functions
     , cumulativeSums
-    , itself
+    , pass
     , textHash
     ) where
 
@@ -252,7 +252,7 @@ iterated(next,input) = input : iterated(next,next input)
 --
 -- 'iterated':
 --
--- > iterated(next,input) = forloop(input,\x -> True,next,itself)
+-- > iterated(next,input) = forloop(input,\x -> True,next,pass)
 --
 -- 'foreach':
 --
@@ -482,10 +482,10 @@ cumulativeSums :: [Number] -> [Number]
 cumulativeSums = P.tail . P.scanl (+) 0
 
 -- | A function that passes the input unchanged as output. It is useful to
--- indicate a transformation that /does nothing/ for those operations
+-- indicate a transformation that /changes nothing/ for those operations
 -- where a transformation is expected.
-itself :: value -> value
-itself = P.id
+pass :: value -> value
+pass = P.id
 
 -- | Creates a number out of a text in such a way
 -- that 

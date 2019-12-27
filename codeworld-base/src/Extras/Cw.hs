@@ -257,7 +257,6 @@ randomSlideshow_(mkslides) = activityOf(initial,update,render)
         | otherwise   = (n           , pass)
         where
         nslides = length(slides)
-        pass(s) = s
 
     remake(ss@SS{..}) = ss
       { slides = mkslides(randomNumbers(r))
