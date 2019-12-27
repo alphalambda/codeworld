@@ -517,4 +517,5 @@ textHash(s) = go h0 (characters s)
     where
     lower = "abcdefghijklmnopqrstuvxyz"
     upper = uppercase(lower)
-    other = " .,'!@#$%^&*()-=_+|/<>\\"
+    other = " .,'!@#$%^&*()-=_+|/<>\\0123456789"
+
