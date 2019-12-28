@@ -157,8 +157,8 @@ module Internal.Exports (
     -- * Deprecated definitions (do not use)
     , path
     , thickPath
-    , text
-    , styledText
+    {- , text -}
+    {- , styledText -}
     , simulationOf
     , debugSimulationOf
     , interactionOf
