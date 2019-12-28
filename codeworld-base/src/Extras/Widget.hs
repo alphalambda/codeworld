@@ -160,7 +160,7 @@ data Widget = Widget
   }
 
 -- | A button placed at the given location. While
--- the button is pressed, the value produced is 0.5,
+-- the button is pressed, the value produced is 1,
 -- but when the button is released, the value reverts
 -- back to 0.
 button :: (Text,Number,Number) -> Widget
@@ -168,15 +168,15 @@ button(p) = (newWidget(p)) { widget = Button }
 
 -- | A toggle (checkbox) with the given label at the given location.
 -- When the box is not set, the value produced is 0. When the
--- box is set, the value produced is 0.5
+-- box is set, the value produced is 1
 toggle :: (Text,Number,Number) -> Widget
 toggle(p) = (newWidget(p)) { widget = Toggle }
 
 -- | A slider with the given label at the given location.
 -- The possible values will range from 0 to 1, and the initial
--- value will be 0.
+-- value will be 0.5.
 slider :: (Text,Number,Number) -> Widget
-slider(p) = (newWidget(p)) { widget = Slider }
+slider(p) = (newWidget(p)) { widget = Slider, value_ = 0.5  }
 
 -- | A box that produces a random number between 0 and 1.
 -- Each time you click on it, the value will change. The
@@ -623,7 +623,7 @@ drawRandom(Widget{..}) = drawLabel & drawSelection & drawHighlight
 
 updateWidget(PointerPress(mx,my))(w@Widget{..})
   | widget == Button, hit(mx,my,w) = w { selected = True, highlight = False 
-                                       , oldval = value_ , value_ = 0.5
+                                       , oldval = value_ , value_ = 1
                                        }
   | widget == Button               = w { selected = False, highlight = False 
                                        , oldval = value_ , value_ = 0
@@ -634,7 +634,7 @@ updateWidget(PointerPress(mx,my))(w@Widget{..})
                                         }
   | widget == Toggle, hit(mx,my,w) = w { selected = not(selected)
                                        , oldval = value_
-                                       , value_ = 0.5 - value_
+                                       , value_ = 1 - value_
                                        , highlight = True
                                        }
   | widget == Timer, hitReset(mx,my,w) = w { oldval = value_ , value_ = 0 }
