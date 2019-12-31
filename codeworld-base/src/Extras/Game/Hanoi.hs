@@ -11,10 +11,11 @@ where
 import Prelude
 import Extras.Op((<?>),(<$>),(<|))
 import Extras.Cw(pageFromTexts)
-import Extras.Extras(formatting)
-import Extras.Util(iterated,cumulativeSums,printedNumbers)
+import Extras.Util(iterated,cumulativeSums,printedNumbers,rJustified)
 
 -- traced(x,_) = x
+
+x . f = f(x)
 
 -- Towers of Hanoi
 
@@ -201,14 +202,11 @@ drawInfos(model) = resized(pageFromTexts(movesInfo : "" : numInfos),2)
             ]
   where
   cons(f,g)(x) = f(x) : g(x)
-  movesInfo = format[ lit "Num Moves: "
-                    , dec(total,8,0)
-                    ] model
+  movesInfo = joined([ "Num Moves: ", rJustified(printed(model.total),8) ])
   numInfos = print <$> [(i,count(s)) | i <- [1..] | s <- pegs(model)]
-  print = format[lit "Peg",dec(snum,3,0),lit ": ",dec(slen,5,0)]
+  print(m) = "Peg" <> rJustified(printed(m.snum),3) <> ": " <> rJustified(printed(m.slen),5)
     where snum = firstOfPair
           slen = secondOfPair
-  (format,spc,lit,txt,dec) = formatting
 
 
 drawPeg n (num,discs) numDiscs =

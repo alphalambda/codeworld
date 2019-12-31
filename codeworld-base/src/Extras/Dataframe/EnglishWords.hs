@@ -3,10 +3,10 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Extras.Dataframe.EnglishWords
+module Extras.Dataframe.EnglishWords(englishwords)
 where
 
-import Prelude
+import Core
 
 englishwords = 
   [ "the"
