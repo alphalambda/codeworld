@@ -18,11 +18,13 @@ Description:
 Library
   Hs-source-dirs:      src
   Js-sources:          jsbits/deep_eq.js
-  Exposed-modules:     Standard,
-                       Standard.Debug,
+  Exposed-modules:     Core,
+                       Parameter,
                        Image,
-                       Core,
                        Sketches,
+                       -- LSU
+                       Standard,
+                       Standard.Debug,
                        Lessons.Bear,
                        Lessons.Logic,
                        Lessons.Penguin,

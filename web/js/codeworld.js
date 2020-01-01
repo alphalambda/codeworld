@@ -148,7 +148,7 @@ function initCodeworld() {
         styleActiveLine: !WURFL || !WURFL.is_mobile,
         showTrailingSpace: true,
         indentWithTabs: false,
-        indentUnit: window.buildMode === 'codeworld' ? 4 : 2,
+        indentUnit: 2,
         autoClearEmptyLines: true,
         highlightSelectionMatches: {
             showToken: /\w/,
@@ -376,11 +376,18 @@ function initCodeworld() {
 function backspace() {
     if (window.buildMode === 'codeworld' && !window.codeworldEditor.somethingSelected()) {
         const cursor = window.codeworldEditor.getCursor();
-        const prefix =
-            window.codeworldEditor.getDoc().getLine(cursor.line).slice(0, cursor.ch);
-        if (/^[\s]+$/.test(prefix)) {
-            window.codeworldEditor.execCommand('indentLess');
-            return;
+        const line = window.codeworldEditor.getDoc().getLine(cursor.line);
+        const lineStart = window.codeworldEditor.getTokenAt({
+            line: cursor.line,
+            ch: 0
+        });
+        if (/^[\s]+$/.test(line.slice(0, cursor.ch)) &&
+            /^([^\s]|$).*/.test(line.slice(cursor.ch))) {
+            const smartIndent = getSmartIndent(lineStart.state, line.slice(cursor.ch), cursor.ch - 1, 'add');
+            if (cursor.ch === smartIndent) {
+                window.codeworldEditor.execCommand('indentLess');
+                return;
+            }
         }
     }
     window.codeworldEditor.execCommand('delCharBefore');
@@ -745,7 +752,19 @@ function loadProject(name, path) {
 
 function formatSource() {
     if (window.buildMode === 'codeworld') {
-        // Unfortunately, there isn't an acceptable style for CodeWorld yet.
+        const doc = codeworldEditor.getDoc();
+        const pos = { line: 0, ch: 1 };
+        const mode = codeworldEditor.getMode();
+        while (pos.line <= doc.lineCount()) {
+            const initialState = mode.copyState(codeworldEditor.getTokenAt(pos, true).state);
+            window.codeworldEditor.indentLine(pos.line);
+            while (true) {
+                const newState = codeworldEditor.getTokenAt(pos, true).state;
+                if (newState.contexts.length <= initialState.contexts.length) break;
+                window.codeworldEditor.indentLine(pos.line, "subtract");
+            }
+            ++pos.line;
+        }
         return;
     }
 

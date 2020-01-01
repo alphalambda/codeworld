@@ -127,7 +127,8 @@ CodeMirror.defineMode('codeworld', (config, modeConfig) => {
         }
 
         if (stream.eat(',')) {
-            state.continued = true;
+            // Set continued to false, so next item is aligned.
+            state.continued = false;
             return 'comma';
         }
 
@@ -211,11 +212,30 @@ CodeMirror.defineMode('codeworld', (config, modeConfig) => {
     function updateLayout(token, column, style, state) {
         // Close any implicit contexts when there are tokens in columns to
         // the left.
-        const toClose = state.contexts.findIndex(ctx => !isBracket(ctx) && ctx.column > column);
         let foundLet = false;
-        if (toClose >= 0) {
-            foundLet = state.contexts[toClose].value === 'let';
-            while (state.contexts.length > toClose) state.contexts.pop();
+        for (let i = 0; i < state.contexts.length; ++i) {
+            const ctx = state.contexts[i];
+
+            if (ctx.column > column && !isBracket(ctx)) {
+                foundLet = ctx.value === 'let';
+                state.contexts = state.contexts.slice(0, i);
+                break;
+            }
+        }
+
+        // Update alignment columns for the innermost bracket.
+        if (state.contexts.length > 0) {
+            const ctx = state.contexts[state.contexts.length - 1];
+            if (ctx.fresh) {
+                const sameLine = state.line === ctx.ln;
+                const openBracket = RE_OPENBRACKET.test(token);
+                if (!sameLine || !openBracket) {
+                    ctx.column = column;
+                    ctx.fresh = false;
+                }
+            } else {
+                ctx.column = Math.min(ctx.column, column);
+            }
         }
 
         // Create any new implicit contexts called for by layout rules.
@@ -249,6 +269,8 @@ CodeMirror.defineMode('codeworld', (config, modeConfig) => {
         state.lastTokens = state.lastTokens.slice(-1);
         state.lastTokens.push(token);
 
+        const topContext = () => state.contexts[state.contexts.length - 1];
+
         // Close contexts when syntax demands that we do so.
         if (token === ',') {
             // Close implicit contexts on comma.
@@ -268,7 +290,19 @@ CodeMirror.defineMode('codeworld', (config, modeConfig) => {
             state.contexts.reverse();
             if (reverseIndex >= 0) {
                 const index = state.contexts.length - reverseIndex - 1;
-                while (state.contexts.length > index) state.contexts.pop();
+                while (state.contexts.length > index) {
+                    const child = topContext();
+                    state.contexts.pop();
+                    const parent = topContext();
+                    if (isBracket(parent)) {
+                        if (parent.fresh) {
+                            parent.fresh = false;
+                            parent.column = Math.min(child.ch, child.column);
+                        } else {
+                            parent.column = Math.min(parent.column, child.ch, child.column);
+                        }
+                    }
+                }
                 if (token !== 'in') {
                     // Update the style to indicate bracket level.
                     const level = state.contexts.filter(isBracket).length;
@@ -276,7 +310,6 @@ CodeMirror.defineMode('codeworld', (config, modeConfig) => {
                 }
             }
         } else if (token === 'where') {
-            const topContext = () => state.contexts[state.contexts.length - 1];
             while (state.contexts.length > 0 && ['let', 'of', 'do', 'case'].indexOf(topContext().value) >= 0) {
                 state.contexts.pop();
             }
@@ -304,17 +337,18 @@ CodeMirror.defineMode('codeworld', (config, modeConfig) => {
                 }
             }
 
-            let newColumn = 0;
+            let parentCol = 0;
             if (state.contexts.length > 0) {
-                newColumn = state.contexts[state.contexts.length - 1].column + config.indentUnit;
+                parentCol = state.contexts[state.contexts.length - 1].column;
             }
             state.contexts.push({
                 value: token,
-                column: newColumn,
+                column: parentCol + config.indentUnit,
                 ln: state.line,
                 ch: column,
                 functionName,
-                argIndex: 0
+                argIndex: 0,
+                fresh: true
             });
         }
 
@@ -344,7 +378,8 @@ CodeMirror.defineMode('codeworld', (config, modeConfig) => {
                         ln: ctx.ln,
                         ch: ctx.ch,
                         functionName: ctx.functionName,
-                        argIndex: ctx.argIndex || 0
+                        argIndex: ctx.argIndex || 0,
+                        fresh: ctx.fresh
                     };
                 }),
                 lastTokens: state.lastTokens.map(t => t),
@@ -369,32 +404,77 @@ CodeMirror.defineMode('codeworld', (config, modeConfig) => {
         indent: (state, textAfter) => {
             if (state.commentLevel > 0 || state.contexts.length < 1) return CodeMirror.Pass;
 
-            // Find the top layout level.  If the next token closes a layout, then
-            // this is the layout above the one that's closed, but an extra indent is
-            // needed.  Otherwise, it's the top of the stack.
+            // Find the top context.  If the next token closes a layout context, then this
+            // is the context above the one that's closed. Otherwise, it's the top of the stack.
             let topLayout = state.contexts.length - 1;
             const token = textAfter.match(/^(in\b|where\b|[,)\]}])/);
+
             if (token && token[0] === ',') {
+                // Commas close all non-bracket contexts, by rule 5
                 while (topLayout > 0 && !isBracket(state.contexts[topLayout])) {
                     --topLayout;
                 }
             } else if (token && token[0] === 'where') {
+                // 'where' cannot occur in expression context, so closes a lot.
                 while (topLayout > 0 && ['let', 'of', 'do', 'case'].indexOf(state.contexts[topLayout].value) >= 0) {
                     --topLayout;
                 }
             } else if (token && state.contexts.findIndex(ctx => ctx.value === opening(token[0])) >= 1) {
+                // Brackets close up to and including the top layout that matches.
                 while (state.contexts[topLayout].value !== opening(token[0])) {
                     --topLayout;
                 }
-                --topLayout;
+                if (!isBracket(state.contexts[topLayout])) --topLayout;
             }
 
-            const layoutIndent = state.contexts[topLayout].column || 0;
+            const ctx = state.contexts[topLayout];
 
-            if (/^(where\b|[|]($|[^:!#$%&*+./<=>?@\\^|~-]+))/.test(textAfter)) return layoutIndent + Math.ceil(config.indentUnit / 2);
-            else if (RE_DASHES.exec(textAfter) && RE_DASHES.exec(textAfter).index === 0) return layoutIndent;
-            else if (state.continued || RE_ELECTRIC_START.test(textAfter)) return layoutIndent + config.indentUnit;
-            else return layoutIndent;
+            // Compute the rightmost surrounding layout column, which should be respected
+            // by indent rules.
+            let parentColumn, minIndent;
+            if (topLayout > 0) {
+                const parent = state.contexts[topLayout - 1];
+                parentColumn = parent.column;
+                minIndent = isBracket(parent) ? parentColumn : parentColumn + 1;
+            } else {
+                parentColumn = 0;
+                minIndent = 0;
+            }
+
+            if (isBracket(ctx) && token && opening(token[0]) === ctx.value) {
+                // Close brackets should be aligned to the open bracket if the inside indent
+                // is always less than that. or the
+                // indent level inside.  However, if the parent is a layout context, they must
+                // be indented beyond the layout column.
+
+                let desiredIndent;
+                if (ctx.column <= ctx.ch) desiredIndent = parentColumn + config.indentUnit;
+                else desiredIndent = ctx.ch;
+                return Math.max(minIndent, desiredIndent);
+            } else if (isBracket(ctx) && token && token[0] === ',') {
+                // In order to align elements, commas should be placed two columns to the left
+                // of the bracket's internal alignment, if possible.
+
+                return Math.max(minIndent, ctx.column - 2);
+            } else if (/^(where\b|[|]($|[^:!#$%&*+./<=>?@\\^|~-]+))/.test(textAfter)) {
+                // Guards and where clauses are indented a half-indent beyond the parent
+                // context.  This is reasonably common, and helps them stand out from wrapped
+                // expressions.
+
+                return ctx.column + Math.ceil(config.indentUnit / 2);
+            } else if (RE_DASHES.exec(textAfter) && RE_DASHES.exec(textAfter).index === 0) {
+                // Comments are aligned at the current level.  Special case to avoid
+                // mistaking them for operators.
+
+                return ctx.column;
+            } else if (state.continued || RE_ELECTRIC_START.test(textAfter)) {
+                // This is a continuation line, because either the end of the last line or
+                // the beginning of this one are not suitable for this to be a new statement.
+
+                return ctx.column + config.indentUnit;
+            } else {
+                return ctx.column;
+            }
         },
         electricInput: RE_ELECTRIC_INPUT,
         blockCommentStart: '{-',
