@@ -802,21 +802,49 @@ function loadProject(name, path) {
 
 function formatSource() {
     if (window.buildMode === 'codeworld') {
-        const doc = codeworldEditor.getDoc();
-        const pos = {
-            line: 0,
-            ch: 1
-        };
-        const mode = codeworldEditor.getMode();
-        while (pos.line <= doc.lineCount()) {
-            const initialState = mode.copyState(codeworldEditor.getTokenAt(pos, true).state);
-            window.codeworldEditor.indentLine(pos.line);
-            while (true) {
-                const newState = codeworldEditor.getTokenAt(pos, true).state;
-                if (newState.contexts.length <= initialState.contexts.length) break;
-                window.codeworldEditor.indentLine(pos.line, 'subtract');
+        const getLevel = (lineNum) => {
+            const lineText = window.codeworldEditor.getDoc().getLine(lineNum);
+            const pos = {
+                line: lineNum,
+                ch: Math.min(lineText.length, /^[\s]*/.exec(lineText)[0].length + 1)
+            };
+            const token = codeworldEditor.getTokenAt(pos, true);
+            if (token.type === 'comment') return -1;
+
+            const isItem = (token.type || '').split(' ').indexOf('layout') >= 0;
+            if (isItem) {
+                return token.state.contexts.length;
+            } else {
+                return token.state.contexts.length + 0.5;
             }
-            ++pos.line;
+        }
+
+        const oldLevel = [];
+        for (let line = 0; line < codeworldEditor.getDoc().lineCount(); ++line) {
+            oldLevel.push(getLevel(line));
+        }
+        for (let line = 0; line < codeworldEditor.getDoc().lineCount(); ++line) {
+            if (oldLevel[line] === -1) continue;
+
+            window.codeworldEditor.indentLine(line);
+            while (getLevel(line) > oldLevel[line]) {
+                const {prev, smart} = getIndentsAt(line, 'subtract');
+                if (prev === 0) {
+                    break;
+                } else if (smart >= 0 && smart !== prev) {
+                    window.codeworldEditor.indentLine(line, smart - prev);
+                } else {
+                    window.codeworldEditor.indentLine(line, 'subtract');
+                }
+            }
+            while (getLevel(line) < oldLevel[line]) {
+                const {prev, smart} = getIndentsAt(line, 'add');
+                if (smart >= 0 && smart !== prev) {
+                    window.codeworldEditor.indentLine(line, smart - prev);
+                } else {
+                    window.codeworldEditor.indentLine(line, 'add');
+                }
+            }
         }
         return;
     }
