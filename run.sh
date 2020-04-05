@@ -16,9 +16,9 @@
 
 source base.sh
 
-#rm -rf data/base/* data/codeworld/build/*
-run . rm -rf data/*/build
-rm -rf $(for fn in $(find data/base -atime +20 -regex .*\\.js$ ); do dirname $fn; done)
+run . rm -rf data/base/* data/codeworld/build/*
+#run . rm -rf data/*/build
+#rm -rf $(for fn in $(find data/base -atime +20 -regex .*\\.js$ ); do dirname $fn; done)
 
 fuser -k -n tcp 8080
 fuser -k -n tcp 9160
@@ -29,8 +29,10 @@ fuser -k -n tcp 9160
 #mkdir -p data/blocklyXML/projects
 #run . codeworld-server-migrate
 
-mkdir -p log
+#mkdir -p log
+mkdir -p log data/codeworld/build
 
 echo "Running LSU version"
-codeworld-game-server +RTS -T &
+#codeworld-game-server +RTS -T &
 run .  codeworld-server -p 8080
+

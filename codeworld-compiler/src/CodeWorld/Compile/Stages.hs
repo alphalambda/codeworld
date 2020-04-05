@@ -264,7 +264,7 @@ checkExcludedSyntax =
     _ -> return ()
   where
     checkExps :: Exp SrcSpanInfo -> [Diagnostic]
-    checkExps (Do loc _) = [(loc, CompileError, doBlockMsg)]
+    -- checkExps (Do loc _) = [(loc, CompileError, doBlockMsg)]
     checkExps (Lit loc (Char _ _ _)) = [(loc, CompileError, charLiteralMsg)]
     checkExps (Lit loc (PrimChar _ _ _)) = [(loc, CompileError, charLiteralMsg)]
     checkExps (VarQuote loc _) = [(loc, CompileError, charLiteralMsg)]

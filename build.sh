@@ -94,4 +94,4 @@ function build_codemirror {
   return $exitcode
 }
 
-run $BUILD/CodeMirror build_codemirror
+# run $BUILD/CodeMirror build_codemirror
