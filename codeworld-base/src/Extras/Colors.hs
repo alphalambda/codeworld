@@ -86,7 +86,9 @@ withAlpha(RGBA(r,g,b,_),a) = RGBA(r,g,b,a)
 -- @whitesmoke@, @yellow@, and @yellowgreen@.
 -- 
 colorNamed :: Text -> Color
-colorNamed(name) = colorNamed'(lowercase(substitution(name," ","")))
+colorNamed(name)
+    | name == "" = error "No color name specified"
+    | otherwise  = colorNamed'(lowercase(substitution(name," ","")))
 
 colorNamed'(name)
     | head == "#" && length(chars) == 7 = RGB(m r,m g,m b)

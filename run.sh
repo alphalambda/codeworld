@@ -23,6 +23,8 @@ run . rm -rf data/base/* data/codeworld/build/*
 fuser -k -n tcp 8080
 fuser -k -n tcp 9160
 
+sleep 2
+
 # Run migration of project directory structure for codeworld-server.
 #mkdir -p data/codeworld/projects
 #mkdir -p data/haskell/projects
