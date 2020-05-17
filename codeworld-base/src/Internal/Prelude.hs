@@ -171,7 +171,7 @@ list # idx
     go 1 (x:xs) = x
     go n (x:xs) = go (n - 1) xs
 
-infixl 9 #
+infixl 8 #
 
 idxErrorNonInt :: HasCallStack => Number -> a
 idxErrorNonInt idx = P.error "Non-integer list index is not allowed."

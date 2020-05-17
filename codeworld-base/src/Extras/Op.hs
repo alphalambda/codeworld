@@ -21,21 +21,6 @@ f <$> l = map f l
 
 infixr 1 <$>
 
--- | Alternative syntax for the applicative operator, which indicates
--- direction of data flow (right to left)
-(<$) :: (a -> b) -> [a] -> [b]
-(<$) = (<$>)
-
-infixr 1 <$
-
--- | Alternative syntax for the applicative operator, which indicates
--- direction of data flow (left to right)
-($>) :: [a] -> (a -> b) -> [b]
-l $> f = f <$ l
-
-infixl 1 $>
-
-
 -- | Selective operator, used to keep only those elements in the
 -- given list that satisfy the given condition
 (<?>) :: (a -> Truth) -> [a] -> [a]
@@ -55,56 +40,35 @@ infixl 2 <|>
 
 infixl 3 <&>
 
--- | Reverses the order of function application, so that the argument is
--- first and the function is second
-(|>) :: a -> (a -> b) -> b
-x |> f = f x
-
-infixl 1 |>
-
--- | Makes function application explicit, so @f <| x@ is the same as @f(x)@
-(<|) :: (a -> b) -> a -> b
-f <| x = f(x)
-
-infixr 1 <|
-
 -- | Function composition, where data flows from left to right
 (.>) :: (a -> b) -> (b -> c) -> (a -> c)
 (f .> g)(x) = g(f(x))
 
-infixl 1 .>
+infixl 9 .>
 
--- | Function composition, where data flows from right to left
-(.<) :: (b -> c) -> (a -> b) -> (a -> c)
-(f .< g)(x) = f(g(x))
-
-infixl 1 .<
-
--- | Unicode version of the function application operator (flowing
--- right to left)
-(⇐) = (<|)
-infixr 1 ⇐
-
--- | Unicode version of the function application operator (flowing
--- left to right)
-(⇒) = (|>)
-infixl 1 ⇒
-
--- | Simulates object notation by allowing you to write @x.#method@ instead
+-- | Simulates object notation by allowing you to write @x.$method@ instead
 -- of @method(x)@
-(.#) :: a -> (a -> b) -> b
-x .# f = f(x)
+(.$) :: a -> (a -> b) -> b
+x .$ f = f(x)
 
-infixl 9 .#
+infixl 8 .$
 
 -- | Object notation for the applicative operator
-(.$) :: [a] -> (a -> b) -> [b]
-l .$ f = map f l
+(.#) :: [a] -> (a -> b) -> [b]
+l .# f = map f l
 
-infixl 9 .$
+infixl 8 .#
 
 -- | Object notation for the selective operator
 (.?) :: [a] -> (a -> Truth) -> [a]
 l .? cond = filter cond l
 
-infixl 9 .?
+infixl 8 .?
+
+-- | Alternative syntax for function application, which indicates
+-- direction of data flow (left to right) and has low precedence
+($>) :: a -> (a -> b) -> b
+l $> f = f l
+
+infixl 1 $>
+

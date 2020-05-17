@@ -9,7 +9,7 @@ module Extras.Game.Hanoi (solve,move,solveWith,Move)
 where
 
 import Prelude
-import Extras.Op((<?>),(<$>),(<|))
+import Extras.Op((<?>),(<$>))
 import Extras.Cw(pageFromTexts)
 import Extras.Util(iterated,cumulativeSums,printedNumbers,rJustified)
 
@@ -257,7 +257,7 @@ move(i,j)(pegs) =
   else pegs
   where
   x = top i pegs
-  moveit = pop(i) <| push(j,x) <| pegs
+  moveit = pegs |> push(j,x) |> pop(i)
 
 -------------------------------------------------------------------------------
 -- Utility

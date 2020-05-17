@@ -41,7 +41,8 @@ qLength = qlen
 qFront :: (Queue a, a) -> a
 qFront = qtop
 
--- | A Queue like the given queue, but with the front element removed
+-- | A Queue like the given queue, but with the front element removed.
+-- If the given queue is empty, it remains unchanged.
 qRest :: Queue a -> Queue a
 qRest = qpop
 

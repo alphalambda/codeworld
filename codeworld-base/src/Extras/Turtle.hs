@@ -163,7 +163,7 @@ turtlePosition = position
 -- that CodeWorld uses angles, so that 0 means pointing to
 -- the right, and angles increase counter-clockwise.
 turtleAngle :: Turtle -> Number
-turtleAngle(turtle) = vectorDirection(turtle.#heading)
+turtleAngle(turtle) = vectorDirection(turtle.$heading)
 
 -------------------------------------------------------------------------------
 -- API
@@ -191,7 +191,7 @@ type Track = [Point]
 -- different tracks will be joined together into a single Track, as
 -- if the Turtle pen was always down.
 track :: TurtleCommand -> Track
-track(cmd) = cmd.#tracks.#concatenation
+track(cmd) = cmd.$tracks.$concatenation
 
 -- | Convert a Turtle command into a list of Tracks. A Track ends when
 -- you use the 'pu' Turtle command. After that, the Turtle position
@@ -212,7 +212,7 @@ track(cmd) = cmd.#tracks.#concatenation
 -- >   singleLine(x) = run([pd, fd(x/100), lt(59), pu])
 --
 tracks :: TurtleCommand -> [Track]
-tracks(cmd) = initialTurtle.#cmd.#saveTrace.#reversed
+tracks(cmd) = initialTurtle.$cmd.$saveTrace.$reversed
 
 {- The example above in Python:
 
@@ -295,7 +295,7 @@ partialTracks(turtleProg) = foreach([2..sum(lengths)],partial)
 -- >                               ])
 --
 randomTracks :: ([Number],TurtleCommand) -> [Track]
-randomTracks(randoms,cmd) = turtle.#cmd.#saveTrace.#reversed
+randomTracks(randoms,cmd) = turtle.$cmd.$saveTrace.$reversed
     where
     turtle = initialTurtle { rndNumbers = randoms }
 
@@ -363,33 +363,33 @@ alongTrack(points)
 fd :: Number -> TurtleCommand
 fd(len)(turtle) = turtle
   { position = position'
-  , trace = turtle.#addPoint(position')
+  , trace = turtle.$addPoint(position')
   }
   where
   position' = (px+len*hx,py+len*hy)
-  (px,py) = turtle.#position
-  (hx,hy) = turtle.#heading
+  (px,py) = turtle.$position
+  (hx,hy) = turtle.$heading
 
 -- | Move the Turtle backward by the given number of units
 bk :: Number -> TurtleCommand
 bk(len)(turtle) = turtle
   { position = position'
-  , trace = turtle.#addPoint(position')
+  , trace = turtle.$addPoint(position')
   }
   where
   position' = (px-len*hx,py-len*hy)
-  (px,py) = turtle.#position
-  (hx,hy) = turtle.#heading
+  (px,py) = turtle.$position
+  (hx,hy) = turtle.$heading
 
 -- | Turn the Turtle right (clockwise) by the given number of degrees
 rt :: Number -> TurtleCommand
 rt(angle)(turtle) = turtle
-  { heading = rotatedPoint(turtle.#heading,-angle) }
+  { heading = rotatedPoint(turtle.$heading,-angle) }
   
 -- | Turn the Turle left (counter-clockwise) by the given number of degrees
 lt :: Number -> TurtleCommand
 lt(angle)(turtle) = turtle
-  { heading = rotatedPoint(turtle.#heading,angle) }
+  { heading = rotatedPoint(turtle.$heading,angle) }
 
 -- | Set the Turtle heading by first orienting it upright (pointing upwards)
 --   and then rotating it clockwise by the given number of degrees
@@ -401,7 +401,7 @@ seth(angle)(turtle) = turtle
 setxy :: Point -> TurtleCommand
 setxy(x,y)(turtle) = turtle
   { position = (x,y)
-  , trace = turtle.#addPoint(x,y)
+  , trace = turtle.$addPoint(x,y)
   }
 
 -- | Move the Turtle to the center and set the heading to upright
@@ -409,18 +409,18 @@ home :: TurtleCommand
 home(turtle) = turtle
   { heading = homeHeading
   , position = homePosition
-  , trace = turtle.#addPoint(homePosition)
+  , trace = turtle.$addPoint(homePosition)
   }
 
 -- | Pen Up: Stop tracing the positions of the Turtle.
 -- If the pen was down, this command will end the current
 -- 'Track'. Otherwise, the command is ignored.
 pu :: TurtleCommand
-pu(turtle) = case turtle.#pen of
+pu(turtle) = case turtle.$pen of
   Pu -> turtle
   Pd -> turtle
           { trace = []
-          , traces = turtle.#saveTrace
+          , traces = turtle.$saveTrace
           , pen = Pu
           }
 
@@ -428,10 +428,10 @@ pu(turtle) = case turtle.#pen of
 -- If the pen was up, this command will start a new 'Track'.
 -- Otherwise, the command is ignored.
 pd :: TurtleCommand
-pd(turtle) = case turtle.#pen of
+pd(turtle) = case turtle.$pen of
   Pd -> turtle
   Pu -> turtle
-          { trace = [turtle.#position]
+          { trace = [turtle.$position]
           , pen = Pd
           }
 
@@ -457,10 +457,10 @@ pd(turtle) = case turtle.#pen of
 overxy :: (Point -> Point) -> TurtleCommand
 overxy(f)(turtle) = turtle
   { position = p
-  , trace = turtle.#addPoint(p)
+  , trace = turtle.$addPoint(p)
   }
   where
-  p = f(turtle.#position)
+  p = f(turtle.$position)
 
 -- | Set the starting point for the trace to the given coordinates.
 -- Any Track recorded before using this command will be discarded.
@@ -477,7 +477,7 @@ overxy(f)(turtle) = turtle
 sethome :: Point -> TurtleCommand
 sethome(x,y)(turtle) = turtle
   { position = (x,y)
-  , trace = case turtle.#pen of
+  , trace = case turtle.$pen of
                 Pu -> []
                 Pd -> [(x,y)]
   }
@@ -522,10 +522,10 @@ turtle = run([ rt(150), fd(0.2), lt(120), fd(0.2), lt(60), fd(0.4), lt(120)
 randomized :: (Number -> TurtleCommand,Number) -> TurtleCommand
 randomized(cmd,maxnum)(turtleOld) = cmd(num)(turtleNew)
     where
-    turtleNew = turtleOld { rndNumbers = rest(turtleOld.#rndNumbers,1) }
+    turtleNew = turtleOld { rndNumbers = rest(turtleOld.$rndNumbers,1) }
     num = maxnum * rnd
-    rnd | empty(turtleOld.#rndNumbers) = 0.5
-        | otherwise = turtleOld.#rndNumbers#1
+    rnd | empty(turtleOld.$rndNumbers) = 0.5
+        | otherwise = turtleOld.$rndNumbers#1
 
 -- | Repeat a turtle Program a random number of times up to the given
 -- maximum. This is a specialized version of 'randomized'.
@@ -536,7 +536,7 @@ repeatRandom(maxnum,prog) = randomized(\r -> repeat(r,prog),maxnum)
 
 -- | Draw each Track in a list of tracks as a polyline.
 polylines :: [Track] -> Picture
-polylines(ls) = ls.$polyline.#pictures
+polylines(ls) = ls.#polyline.$pictures
 
 -- | Draw each Track in a list of tracks as a thick polyline
 -- of the given thickness.
@@ -545,15 +545,15 @@ thickPolylines(ls,t) = pictures(foreach(ls,\l -> thickPolyline(l,t)))
 
 -- | Draw each Track in a list of tracks as a solid polygon.
 solidPolygons :: [Track] -> Picture
-solidPolygons(ls) = ls.$solidPolygon.#pictures
+solidPolygons(ls) = ls.#solidPolygon.$pictures
 
 -- | Draw all the points in all the polylines of a list of tracks.
 dottylines :: [Track] -> Picture
-dottylines(ls) = ls.$dottyline.#pictures
+dottylines(ls) = ls.#dottyline.$pictures
 
 -- | Draw the vertices of a polyline as dots
 dottyline :: [Point] -> Picture
-dottyline(pts) = pts.$makeDot.#pictures
+dottyline(pts) = pts.#makeDot.$pictures
   where
   makeDot(x,y) = translated(solidCircle(0.05),x,y)
 
@@ -562,14 +562,14 @@ dottyline(pts) = pts.$makeDot.#pictures
 -------------------------------------------------------------------------------
 
 addPoint :: Point -> Turtle -> [Point]
-addPoint(p)(turtle) = case turtle.#pen of
-  Pu -> turtle.#trace
-  Pd -> p : turtle.#trace
+addPoint(p)(turtle) = case turtle.$pen of
+  Pu -> turtle.$trace
+  Pd -> p : turtle.$trace
 
 saveTrace :: Turtle -> [[Point]]
-saveTrace(turtle) = case turtle.#trace of
-  [] -> turtle.#traces
-  pts -> reversed(pts) : turtle.#traces
+saveTrace(turtle) = case turtle.$trace of
+  [] -> turtle.$traces
+  pts -> reversed(pts) : turtle.$traces
             
 
 -------------------------------------------------------------------------------
@@ -577,13 +577,13 @@ saveTrace(turtle) = case turtle.#trace of
 -------------------------------------------------------------------------------
 
 {-
-turtleExample1 = (stars.#run.#tracks.#polylines & anchors.#polyline).#drawingOf
+turtleExample1 = (stars.$run.$tracks.$polylines & anchors.$polyline).$drawingOf
   where
   noStar(l) = run([pu,star(l),pd])
   star(l) = run([repeat(8,[fd(l/30),rt(135)]),pu,fd(3*l/30),rt(57),pd])
   tracedStar(l) = run([star(l),pu,fd(3*l/30),rt(57),pd])
   stars = foreach( [0,4..120], star)
-  anchors = foreach([0,4..120], noStar).#run.#tracks.#concatenation
+  anchors = foreach([0,4..120], noStar).$run.$tracks.$concatenation
 -}
 
 
@@ -731,12 +731,12 @@ randomExample = randomDrawingOf(draw)
 --
 turtleExamples :: Program
 turtleExamples =
-  (slides.$make ++ [bullring.#run.#tracks.#dottylines]).#slideshow
+  (slides.#make ++ [bullring.$run.$tracks.$dottylines]).$slideshow
   where
   make(i,l,s) = blank
     & translated(lettering(i <> ": " <> l),0,9.5) 
     & translated(colored(solidRectangle(10,1.2),RGB(1,1,1)),0,9.5)
-    & s.#run.#tracks.#polylines
+    & s.$run.$tracks.$polylines
 
   slides =
     [ ("recursive", "figs(14, poly(7,2))",figs(14, poly(7,2)))

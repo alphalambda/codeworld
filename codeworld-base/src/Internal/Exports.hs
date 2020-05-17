@@ -1,6 +1,7 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PackageImports #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ParallelListComp #-}
 
 {-
   Copyright 2019 The CodeWorld Authors. All rights reserved.
@@ -132,6 +133,8 @@ module Internal.Exports (
     , rectangle
     , solidRectangle
     , thickRectangle
+    , centerDot
+    , dot
     , circle
     , solidCircle
     , thickCircle
@@ -146,7 +149,7 @@ module Internal.Exports (
     , scaled
     , dilated
     , rotated
-    , pictures
+    -- , pictures
     , (&)
     , coordinatePlane
     , codeWorldLogo
@@ -177,9 +180,19 @@ module Internal.Exports (
     , chartreuse
     , rose
 -}
+    , (|>)
+    , apply
+    , clap
+    , clone
+    , composition
+    , distribute
+    , flat
+    , map
+    , xCoord
+    , yCoord
     ) where
 
-import "base" Prelude (IO)
+import "base" Prelude (map,IO)
 
 import Internal.Num
 import Internal.Prelude
@@ -193,6 +206,9 @@ import Internal.Picture hiding (coordinatePlane)
 coordinatePlane :: Picture
 coordinatePlane = polyline([(-10,0),(10,0)]) & polyline([(0,-10),(0,10)])
 
+composition :: [Picture] -> Picture
+composition = pictures
+
 concatenated :: [[a]] -> [a]
 concatenated = concatenation
 
@@ -201,3 +217,34 @@ truncated = truncation
 
 flattened :: [Picture] -> Picture
 flattened = pictures
+
+flat :: [Picture] -> Picture
+flat = pictures
+
+dot :: (Number,Number) -> Picture
+dot(x,y) = translated(centerDot,x,y)
+
+centerDot :: Picture
+centerDot = solidCircle(0.1)
+
+(|>) :: a -> (a -> b) -> b
+x |> f = f(x)
+
+apply :: ( ((input,param) -> output ), [param] ) -> [input] -> [output]
+apply(f,xs)(os) = [ f(o,x) | x <- xs | o <- os ]
+
+clone :: o -> [o]
+clone(o) = repeating([o])
+
+clap :: ( ((Picture,x) -> Picture), [x] ) -> Picture -> Picture
+clap(f,xs)(o) = pictures([ f(o,x) | x <- xs ])
+
+distribute :: ((a -> b), [a]) -> [b]
+distribute(f,xs) = map f xs
+
+xCoord :: Point -> Number
+xCoord(x,_) = x
+
+yCoord :: Point -> Number
+yCoord(_,y) = y
+

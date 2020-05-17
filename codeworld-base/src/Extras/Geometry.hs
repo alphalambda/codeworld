@@ -141,7 +141,7 @@ outside (a,b) x = beyond (a,b) x || beyond (b,a) x
 
 -- between (a,b) x tells whether x is between a and b
 between :: (Point,Point) -> Point -> Bool
-between ab = not .< outside ab
+between ab = outside ab .> not
 
 sameside :: Point -> (Point,Point) -> Point -> Bool
 sameside x (y,y') x' | not a_yy' = error "sameside"
@@ -152,7 +152,7 @@ sameside x (y,y') x' | not a_yy' = error "sameside"
     where a_yy' = apart y y'
           a_xx' = apart x x'
 
-across x l = not .< sameside x l
+across x l = sameside x l .> not
           
 -- [find p pts] returns the first point among [pts] that has property [p]
 find = D.find
