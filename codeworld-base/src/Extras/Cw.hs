@@ -44,7 +44,7 @@ module Extras.Cw(
     -- * Drawing Trees
     , Tree, (-<), treeDepth, treeWidth, tree
     -- * New entry points
-    , slideshow, autoSlideshow, paginationOf
+    , slideshow, autoSlideshow, paginationOf, showPages
     -- * Entry points with randomization
     -- $randomIntro
     , randomDrawingOf, randomAnimationOf, randomSlideshow, randomAutoSlideshow
@@ -392,6 +392,10 @@ paginationOf(lines,num) = slideshow(pages)
     where
     pages = foreach(gs,pageFromTexts)
     gs = groups(lines,num)
+
+-- | A simplified version of `paginationOf` that assumes 40 lines per page
+showPages :: [Text] -> Program
+showPages(lines) = paginationOf(lines,40)
 
 -- | A picture that represents the given list of texts, so that each
 -- text in the list is shown in a separate line. Lines start at the
