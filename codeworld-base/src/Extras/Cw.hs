@@ -82,7 +82,7 @@ autoSlideshow(slides,period) = animationOf(sshow)
   where
   len = length(slides)
   sshow(t)
-    | len < 1 = pictures([])
+    | len < 1 = combined([])
     | otherwise = slides#num
     where
     num = 1 + remainder(truncated(t/period), len)
@@ -215,7 +215,7 @@ randomSlideshow_(mkslides) = activityOf(initial,update,render)
                         , slides = mkslides(randomNumbers(r))
                         }
     render(SS{..})
-      | empty(slides) = pictures([])
+      | empty(slides) = combined([])
       | otherwise     = showSlide & slides#current
       where
       showSlide
@@ -418,7 +418,7 @@ showPages(lines) = paginationOf(lines,40)
 -- 'forloop' and 'foreach' from "Extras.Util".
 --
 pageFromTexts :: [Text] -> Picture
-pageFromTexts(lines) = pictures([showline(i) | i <- [1..n]])
+pageFromTexts(lines) = combined([showline(i) | i <- [1..n]])
     where
     n = length(lines)
     showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),0,10.25-0.5*i)
@@ -439,7 +439,7 @@ pageFromTexts(lines) = pictures([showline(i) | i <- [1..n]])
 -- Look at the example in the documentation of 'sprite' to see how to use it.
 --
 grid :: ((Number,Number) -> Picture,Number,Number) -> Picture
-grid(cell,rows,cols) = translated(pictures(rpic),-10,10)
+grid(cell,rows,cols) = translated(combined(rpic),-10,10)
   where
   w = 20/cols
   h = 20/rows
@@ -537,7 +537,7 @@ squareFrame(border) = colored(thickRectangle(s,s,border),RGB(1,1,1))
 -- >             ]
 -- >   zooming(v) = 2^(-8 + v*16)
 -- >   draw([zoomX,zoomY]) = graphed(manyCircles, zoomX, zoomY)
--- >   manyCircles = pictures([circle(n) | n <- [1..100]])
+-- >   manyCircles = combined([circle(n) | n <- [1..100]])
 --
 -- Example 1 shows a circle that grows forever, while the graph keeps
 -- adjusting the scale so that it fits within the output.
@@ -577,8 +577,8 @@ graph(maxX,maxY,width,height) = labels & axesX & rotated(axesY,90)
   (majorX,axesX) = axes(maxX,width,height)
   (majorY,axesY) = axes(maxY,height,width)
 
-  labels = pictures(forloop(majorX,(<= maxX),(+ majorX),p))
-         & pictures(forloop(majorY,(<= maxY),(+ majorY),q))
+  labels = combined(forloop(majorX,(<= maxX),(+ majorX),p))
+         & combined(forloop(majorY,(<= maxY),(+ majorY),q))
 
   p(x) | x < 1000000 = translated(lunj( x), pos,-1/2)
                      & translated(lunj(-x),-pos,-1/2)
@@ -606,8 +606,8 @@ axes(maxnum,width,height) = (major, allAxes)
   allAxes = semiMajor & scaled(semiMajor,-1,1)
           & semiMinor & scaled(semiMinor,-1,1)
 
-  semiMajor = pictures(forloop(0,(<= maxnum),(+ major),majorAxis))
-  semiMinor = pictures(forloop(0,(<= maxnum),(+ minor),minorAxis))
+  semiMajor = combined(forloop(0,(<= maxnum),(+ major),majorAxis))
+  semiMinor = combined(forloop(0,(<= maxnum),(+ minor),minorAxis))
   (_,major,_) = resolution(maxnum*10/width)
   (_,minor,_) = resolution(major)
   scaling = width / maxnum
@@ -751,7 +751,7 @@ tree(tt,draw,size) = dilated(fulltree,20/sfactor)
     pointers = if empty(t) then blank 
                            else polyline([(anchor,-0.5),(anchor,-1)])
     anchor = offset+alloc/2
-    nodes = pictures(forloop(input,cond,next,output))
+    nodes = combined(forloop(input,cond,next,output))
       where
       input = (t,offset,if empty(t) then 0 else size * treeWidth(t#1))
       cond(ns,_,_) = nonEmpty(ns)

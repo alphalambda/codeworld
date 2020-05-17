@@ -23,11 +23,6 @@ module Internal.CodeWorld
     , activityOf
     , debugActivityOf
     , groupActivityOf
-    , simulationOf
-    , debugSimulationOf
-    , interactionOf
-    , debugInteractionOf
-    , collaborationOf
     , traced
     ) where
 

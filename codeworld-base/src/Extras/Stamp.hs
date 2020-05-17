@@ -34,12 +34,12 @@ import Extras.Util
 
 x . f = f(x)
 
-atPositions(f)(ps) = pictures(foreach(nps,make))
+atPositions(f)(ps) = combined(foreach(nps,make))
   where
   nps = zipped([1..],ps)
   make(n,(x,y)) = translated(f(n),x,y)
 
-atPlacements(f)(ps) = pictures(foreach(nps,make))
+atPlacements(f)(ps) = combined(foreach(nps,make))
   where
   nps = zipped([1..],ps)
   make(n,(x,y,a)) = translated(rotated(f(n),a),x,y)
@@ -48,7 +48,7 @@ sprite pic _ = pic
 
 sprites pics n = pics#n
 
-render(f) = start(0,0).f.stop.pictures
+render(f) = start(0,0).f.stop.combined
 
 data StampTrack a = StampTrack
   { position :: Point

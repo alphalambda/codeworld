@@ -36,12 +36,12 @@ label(l,(x,y)) =
 
 data Pt = PlusPt | EksPt | StarPt | DotPt
 
-plus_pt = pictures [ hline, vline ]
+plus_pt = combined [ hline, vline ]
     where
     hline = polyline [(-dot_radius,0),(dot_radius,0)]
     vline = polyline [(0,-dot_radius),(0,dot_radius)]
 
-eks_pt = pictures [ lline, rline ]
+eks_pt = combined [ lline, rline ]
     where
     lline = polyline [(-dot_radius,-dot_radius),(dot_radius,dot_radius)]
     rline = polyline [(dot_radius,-dot_radius),(-dot_radius,dot_radius)]
@@ -59,7 +59,7 @@ drawCircle (o,p) = translated(circle(r),x,y)
     (x,y) = o
     r = dist o p
 
-drawPointsLabels pts lbl = pictures[draw pl | pl <- zip pts lbl]
+drawPointsLabels pts lbl = combined[draw pl | pl <- zip pts lbl]
     where
     draw (p,l) = drawPoint p & label(l,p)
 

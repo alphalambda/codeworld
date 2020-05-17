@@ -76,7 +76,7 @@ guiDrawingOf(widgetsUser,drawUser) = activityOf(initAll,updateAll,drawAll)
 
   updateAll(ws,event) = ws.$updateWidget(event).#react
 
-  drawAll(ws) = pictures(ws.$drawWidget) & drawUser(ws.$value)
+  drawAll(ws) = combined(ws.$drawWidget) & drawUser(ws.$value)
 
 -- | The function @guiActivityOf@ is similar to @activityOf@, but it also
 -- takes in a list of widgets. The updating and drawing functions also
@@ -135,7 +135,7 @@ guiActivityOf(widgetsUser,initUser,updateUser,drawUser) =
     newWidgets = widgets.$updateWidget(event).#react
     
   drawAll(widgets,state) =
-    pictures(widgets.$drawWidget) & drawUser(widgets.$value,state)
+    combined(widgets.$drawWidget) & drawUser(widgets.$value,state)
 
 -------------------------------------------------------------------------------
 -- Widget API

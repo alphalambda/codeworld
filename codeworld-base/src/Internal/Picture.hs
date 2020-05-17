@@ -31,6 +31,14 @@ import "base" Prelude ((.), ($), map)
 -- with x coordinate 3 a y coordinate -2.
 type Point = (Number, Number)
 
+-- | The first coordinate of a Point, also known as the X coordinate
+xCoord :: Point -> Number
+xCoord(x,_) = x
+
+-- | The second coordinate of a Point, also known as the Y coordinate
+yCoord :: Point -> Number
+yCoord(_,y) = y
+
 toCWPoint :: Point -> CW.Point
 toCWPoint (x, y) = (toDouble x, toDouble y)
 
@@ -143,23 +151,9 @@ blank = withFrozenCallStack $ CWPic CW.blank
 polyline :: HasCallStack => [Point] -> Picture
 polyline ps = withFrozenCallStack $ CWPic (CW.polyline (map toCWVect ps))
 
--- | A thin sequence of line segments with these endpoints
-path :: HasCallStack => [Point] -> Picture
-path ps = withFrozenCallStack $ CWPic (CW.path (map toCWVect ps))
-
-{-# WARNING path ["Please use polyline(...) instead of path(...).",
-                  "path may be removed July 2020."] #-}
-
 -- | A thin sequence of line segments, with these endpoints and line width
 thickPolyline :: HasCallStack => ([Point], Number) -> Picture
 thickPolyline (ps, n) = withFrozenCallStack $ CWPic (CW.thickPolyline (toDouble n) (map toCWVect ps))
-
--- | A thin sequence of line segments, with these endpoints and line width
-thickPath :: HasCallStack => ([Point], Number) -> Picture
-thickPath (ps, n) = withFrozenCallStack $ CWPic (CW.thickPath (toDouble n) (map toCWVect ps))
-
-{-# WARNING thickPath ["Please use thickPolyline(...) instead of thickPath(...).",
-                       "thickPath may be removed July 2020."] #-}
 
 -- | A thin polygon with these points as vertices
 polygon :: HasCallStack => [Point] -> Picture
@@ -324,8 +318,8 @@ clipped (p, w, h) =
     withFrozenCallStack $ CWPic (CW.clipped (toDouble w) (toDouble h) (toCWPic p))
 
 -- | A picture made by drawing this list of pictures, ordered from front to back.
-pictures :: HasCallStack => [Picture] -> Picture
-pictures ps = withFrozenCallStack $ CWPic (CW.pictures (map toCWPic ps))
+combined :: HasCallStack => [Picture] -> Picture
+combined ps = withFrozenCallStack $ CWPic (CW.pictures (map toCWPic ps))
 
 -- | A binary operation that overlays one picture in from of the other.
 (&) :: HasCallStack => Picture -> Picture -> Picture

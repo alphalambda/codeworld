@@ -200,7 +200,7 @@ track(cmd) = cmd.$tracks.$concatenated
 --
 -- Example:
 --
--- > program = drawingOf(pictures(fig) & solidRectangle(20,20))
+-- > program = drawingOf(combined(fig) & solidRectangle(20,20))
 -- >   where
 -- >   fig = [ colored(thickPolyline(t,0.03),c)
 -- >         | t <- tracks(turtleProgram)
@@ -504,7 +504,7 @@ turtle = run([ rt(150), fd(0.2), lt(120), fd(0.2), lt(60), fd(0.4), lt(120)
 --
 -- > program = randomDrawingOf(draw)
 -- >   where
--- >   draw(random) = pictures([ colored(thickPolyline(t,0.25),c)
+-- >   draw(random) = combined([ colored(thickPolyline(t,0.25),c)
 -- >                           | t <- randomTracks(random1,turtleProgram)
 -- >                           | c <- random2
 -- >                           ])
@@ -536,24 +536,24 @@ repeatRandom(maxnum,prog) = randomized(\r -> repeat(r,prog),maxnum)
 
 -- | Draw each Track in a list of tracks as a polyline.
 polylines :: [Track] -> Picture
-polylines(ls) = ls.#polyline.$pictures
+polylines(ls) = ls.#polyline.$combined
 
 -- | Draw each Track in a list of tracks as a thick polyline
 -- of the given thickness.
 thickPolylines :: ([Track],Number) -> Picture
-thickPolylines(ls,t) = pictures(foreach(ls,\l -> thickPolyline(l,t)))
+thickPolylines(ls,t) = combined(foreach(ls,\l -> thickPolyline(l,t)))
 
 -- | Draw each Track in a list of tracks as a solid polygon.
 solidPolygons :: [Track] -> Picture
-solidPolygons(ls) = ls.#solidPolygon.$pictures
+solidPolygons(ls) = ls.#solidPolygon.$combined
 
 -- | Draw all the points in all the polylines of a list of tracks.
 dottylines :: [Track] -> Picture
-dottylines(ls) = ls.#dottyline.$pictures
+dottylines(ls) = ls.#dottyline.$combined
 
 -- | Draw the vertices of a polyline as dots
 dottyline :: [Point] -> Picture
-dottyline(pts) = pts.#makeDot.$pictures
+dottyline(pts) = pts.#makeDot.$combined
   where
   makeDot(x,y) = translated(solidCircle(0.05),x,y)
 

@@ -155,7 +155,7 @@ simultaneous :: [Script] -> Script
 simultaneous scripts = (p,move)
   where
   p = maximum[ p | (p,_) <- scripts ]
-  move t = pictures[m t | (_,m) <- scripts ]
+  move t = combined[m t | (_,m) <- scripts ]
 
 incrementally :: Script -> Script -> Script
 incrementally s1 s2 = sequentially s1 (simultaneously s1' s2)

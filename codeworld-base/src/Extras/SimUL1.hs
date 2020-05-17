@@ -224,11 +224,11 @@ make_sim(simrow,x_min,x_max,landmarks,parts) =
         origin = screen_coords(x_min)
         destin = screen_coords(x_max)
         simline = polyline [(-10,0),(10,0)]
-                & pictures[render_mark(m) | m <- [0..parts]]
+                & combined[render_mark(m) | m <- [0..parts]]
       in
         blank
         & colored(translated(simline,0,simrow),cgreen)
-        & pictures[translated(minitext(lname,0.5),screen_coords(lpos),simrow-0.5)
+        & combined[translated(minitext(lname,0.5),screen_coords(lpos),simrow-0.5)
                   | (lname,lpos) <- landmarks
                   ]
         
@@ -250,7 +250,7 @@ make_sim(simrow,x_min,x_max,landmarks,parts) =
               txt2 = characters(txt1)
               txt3 = joined(first(txt2,length(txt2)-2))
       in
-        pictures ([render_single s | s <- strobe])
+        combined ([render_single s | s <- strobe])
         
     within_sim (x,y) = abs(y-simrow) < 1
   
@@ -316,7 +316,7 @@ make_chart(ct,cx,ylabel,t_max,x_min,x_max) =
 render(model) =
     blank
     & render_info(time(model),click(model),nstates)
-    & pictures [render_state(i,s) | s <- states model | i <- [0..nstates-1]]
+    & combined [render_state(i,s) | s <- states model | i <- [0..nstates-1]]
     & render_line sim'
     & render_frame pchart'
     & render_frame vchart'

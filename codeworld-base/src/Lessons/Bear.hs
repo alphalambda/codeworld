@@ -39,6 +39,6 @@ dashedCircle(radius) = thickDashedCircle(radius,0)
 
 thickDashedCircle :: (Number,Number) -> Picture
 thickDashedCircle(radius,width) 
- | radius >= 2 = pictures([thickArc(i,i+5,radius,width) | i <- [0,10..350]])
- | radius >= 1 = pictures([thickArc(i,i+10,radius,width) | i <- [0,20..340]])
- | otherwise = pictures([thickArc(i,i+20,radius,width) | i <- [0,40..320]])
+ | radius >= 2 = combined([thickArc(i,i+5,radius,width) | i <- [0,10..350]])
+ | radius >= 1 = combined([thickArc(i,i+10,radius,width) | i <- [0,20..340]])
+ | otherwise = combined([thickArc(i,i+20,radius,width) | i <- [0,40..320]])

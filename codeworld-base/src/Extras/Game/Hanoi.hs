@@ -178,7 +178,7 @@ draw(Model{..})
   | numPegs > 6 = drawInfos(Model{..})
   | otherwise = pegPics & translated(lettering(printed(total)),-8,9)
   where
-  pegPics = pictures[translated(drawPeg i s numDiscs,x,y)
+  pegPics = combined[translated(drawPeg i s numDiscs,x,y)
                       | i <- [1..]
                       | s <- pegs
                       | y <- [2.5,-7.5]
@@ -186,7 +186,7 @@ draw(Model{..})
                       ]
 
 drawMany(Model{..}) = translated(lettering(printed(total)<>" moves"),0,9.5)
-  & pictures([bar(i,count(p)) | i <- [1..] | p <- pegs])
+  & combined([bar(i,count(p)) | i <- [1..] | p <- pegs])
     where
     bar(i,n) = translated(solidRectangle(w,rh),(i-0.5)*w-10,rh/2-10)
         where
@@ -196,7 +196,7 @@ drawMany(Model{..}) = translated(lettering(printed(total)<>" moves"),0,9.5)
 
 
 drawInfos(model) = resized(pageFromTexts(movesInfo : "" : numInfos),2)
-  & pictures[translated(solidRectangle(w,1),w/2,8.5-i)
+  & combined[translated(solidRectangle(w,1),w/2,8.5-i)
             | i <- [1..]
             | s <- pegs(model), let w = 9*count(s)/numDiscs(model)
             ]
@@ -210,7 +210,7 @@ drawInfos(model) = resized(pageFromTexts(movesInfo : "" : numInfos),2)
 
 
 drawPeg n (num,discs) numDiscs =
-  pictures[translated(disc i,0,(0.5+num-pos-1)*height)
+  combined[translated(disc i,0,(0.5+num-pos-1)*height)
           | i <- discs
           | pos <- [0..]
           ]
