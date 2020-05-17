@@ -220,7 +220,7 @@ randomSlideshow_(mkslides) = activityOf(initial,update,render)
       where
       showSlide
           | time - tlast > 2 = blank
-          | otherwise = translated(mark,-9.5,-9.5)
+          | otherwise = translated(mark,(-9.5,-9.5))
           
       mark = scaled(lettering(printed(current)),0.5,0.5)
            & colored(solidRectangle(1,1),RGB(0.9,0.9,0.9))
@@ -421,7 +421,7 @@ pageFromTexts :: [Text] -> Picture
 pageFromTexts(lines) = combined([showline(i) | i <- [1..n]])
     where
     n = length(lines)
-    showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),0,10.25-0.5*i)
+    showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),(0,10.25-0.5*i))
     -- Output should be 40 rows and 66 columns
     fmt(txt) = styledLettering(lJustified(txt,66),Monospace,Italic)
 
@@ -439,11 +439,11 @@ pageFromTexts(lines) = combined([showline(i) | i <- [1..n]])
 -- Look at the example in the documentation of 'sprite' to see how to use it.
 --
 grid :: ((Number,Number) -> Picture,Number,Number) -> Picture
-grid(cell,rows,cols) = translated(combined(rpic),-10,10)
+grid(cell,rows,cols) = translated(combined(rpic),(-10,10))
   where
   w = 20/cols
   h = 20/rows
-  transform(row,col) = translated(base,w*(col-1/2),-h*(row-1/2))
+  transform(row,col) = translated(base,(w*(col-1/2),-h*(row-1/2)))
     where
     base = scaled(cell(row,col),1/cols,1/rows)
   rpic = [ transform(row,col) | row <- [1..rows], col <- [1..cols] ]
@@ -488,7 +488,7 @@ sprite(pic,rows,cols) = transform
   dw = w/2 + 10
   dh = h/2 + 10
   base = scaled(pic,1/cols,1/rows)
-  transform(row,col) = translated(base,w*col-dw,-h*row+dh)
+  transform(row,col) = translated(base,(w*col-dw,-h*row+dh))
 
 -- | @overlays(fig,n)@ is a shortcut for @fig(1) & fig(2) & ... & fig(n)@
 overlays :: ((Number -> Picture),Number) -> Picture
@@ -580,18 +580,18 @@ graph(maxX,maxY,width,height) = labels & axesX & rotated(axesY,90)
   labels = combined(forloop(majorX,(<= maxX),(+ majorX),p))
          & combined(forloop(majorY,(<= maxY),(+ majorY),q))
 
-  p(x) | x < 1000000 = translated(lunj( x), pos,-1/2)
-                     & translated(lunj(-x),-pos,-1/2)
-       | 3 <= pos && pos < 6 = translated(lunj( x), pos,-1/2)
-                             & translated(lunj(-x),-pos,-1/2)
+  p(x) | x < 1000000 = translated(lunj( x), ( pos,-1/2))
+                     & translated(lunj(-x), (-pos,-1/2))
+       | 3 <= pos && pos < 6 = translated(lunj( x), ( pos,-1/2))
+                             & translated(lunj(-x), (-pos,-1/2))
        | otherwise = blank
        where
        pos = x * width / maxX
 
-  q(y) | y < 50000 = translated(ljust( y),-1, pos)
-                   & translated(ljust(-y),-1,-pos)
-       | 3 <= pos && pos < 6 = translated(lunj( y),-1, pos)
-                             & translated(lunj(-y),-1,-pos)
+  q(y) | y < 50000 = translated(ljust( y),(-1, pos))
+                   & translated(ljust(-y),(-1,-pos))
+       | 3 <= pos && pos < 6 = translated(lunj( y),(-1, pos))
+                             & translated(lunj(-y),(-1,-pos))
        | otherwise = blank
        where
        pos = y * height / maxY
@@ -651,7 +651,7 @@ resolution(x) = if x >= 1 then goUp(1) else goDn(1,0)
 -- > program = drawingOf(picture)
 -- >   where
 -- >   w = 3
--- >   picture = tree(t1,draw,w) & translated(lettering(info),5,-9)
+-- >   picture = tree(t1,draw,w) & translated(lettering(info),(5,-9))
 -- >     where
 -- >     draw(node) = lettering(node) 
 -- >                & colored(solidRectangle(0.8*w,1),translucent(light(red)))
@@ -742,11 +742,11 @@ tree(tt,draw,size) = dilated(fulltree,20/sfactor)
   where
   sfactor = max(width,depth)
   width = size * treeWidth(tt)
-  fulltree = translated(tree'(tt,-width/2,width),0,(depth-1)/2)
+  fulltree = translated(tree'(tt,-width/2,width),(0,(depth-1)/2))
   depth = 2*treeDepth(tt)-1
-  tree'(Node(a,t),offset,alloc) = translated(draw(a),anchor,0)
+  tree'(Node(a,t),offset,alloc) = translated(draw(a),(anchor,0))
                                 & pointers
-                                & translated(nodes,0,-2)
+                                & translated(nodes,(0,-2))
     where
     pointers = if empty(t) then blank 
                            else polyline([(anchor,-0.5),(anchor,-1)])

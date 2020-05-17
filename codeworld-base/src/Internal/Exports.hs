@@ -148,7 +148,7 @@ clap(f,xs)(o) = combined([ f(o,x) | x <- xs ])
 
 -- | 'dot(x,y)' is a Picture of a small dot centered at the Point (x,y).
 dot :: (Number,Number) -> Picture
-dot(x,y) = translated(centerDot,x,y)
+dot(p) = translated(centerDot,p)
 
 -- | A Picture of a dot standing at the origin.
 centerDot :: Picture

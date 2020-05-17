@@ -46,8 +46,8 @@ fromCWPoint :: CW.Point -> Point
 fromCWPoint (x, y) = (fromDouble x, fromDouble y)
 
 -- | Moves a given point by given x and y offsets
-translatedPoint :: (Point, Number, Number) -> Point
-translatedPoint (p, x, y) =
+translatedPoint :: (Point, (Number, Number)) -> Point
+translatedPoint (p, (x, y)) =
     fromCWPoint (CW.translatedPoint (toDouble x) (toDouble y) (toCWPoint p))
 
 -- | Rotates a given point by given angle, in degrees
@@ -277,9 +277,9 @@ colored (p, c) = withFrozenCallStack $ CWPic (CW.colored (toCWColor c) (toCWPic 
 coloured :: HasCallStack => (Picture, Color) -> Picture
 coloured args = withFrozenCallStack $ colored args
 
--- | A picture drawn translated in these directions.
-translated :: HasCallStack => (Picture, Number, Number) -> Picture
-translated (p, x, y) =
+-- | A copy of the given Picture translated by the given horizontal and vertical displacements.
+translated :: HasCallStack => (Picture, (Number, Number)) -> Picture
+translated (p, (x, y)) =
     withFrozenCallStack $ CWPic (CW.translated (toDouble x) (toDouble y) (toCWPic p))
 
 -- | A picture scaled by these factors in the x and y directions.

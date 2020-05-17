@@ -34,7 +34,7 @@ outlineBlock(SnapBlock(pts),color) = colored(polygon(pts),color)
 labels :: (SnapBlock,[Number]) -> Picture
 labels(SnapBlock(pts),offs) = solidCircle(0.1) & combined(ls)
   where
-  ls = [translated(lbl(i),x,y+0.5*o) 
+  ls = [translated(lbl(i),(x,y+0.5*o))
        | (x,y) <- pts
        | o <- offs
        | i <- [1..]
@@ -42,7 +42,7 @@ labels(SnapBlock(pts),offs) = solidCircle(0.1) & combined(ls)
   lbl(i) = dilated(lettering(printed(i)),3/4)
 
 snapped :: (Picture,SnapBlock,Number) -> Picture
-snapped(pic,SnapBlock(pts),loc) = translated(pic,tx,ty)
+snapped(pic,SnapBlock(pts),loc) = translated(pic,(tx,ty))
   where
   (tx,ty) = vertex(pts,loc)
   
@@ -68,7 +68,7 @@ vertex(p,i)
 
 
 translatedBlock :: (SnapBlock,Number,Number) -> SnapBlock
-translatedBlock(SnapBlock(pts),tx,ty) = SnapBlock([translatedPoint(p,tx,ty) | p <- pts])
+translatedBlock(SnapBlock(pts),tx,ty) = SnapBlock([translatedPoint(p,(tx,ty)) | p <- pts])
 
 rotatedBlock :: (SnapBlock,Number) -> SnapBlock
 rotatedBlock(SnapBlock(pts),angle) = SnapBlock([rotatedPoint(p,angle) | p <- pts])

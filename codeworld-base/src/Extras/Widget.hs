@@ -96,7 +96,7 @@ guiDrawingOf(widgetsUser,drawUser) = activityOf(initAll,updateAll,drawAll)
 -- > 
 -- > draw(values,(color@(RGB(r1,r2,r3)),angle,_)) = colored(base,color)
 -- >     & [blank, circle(5)]#s
--- >     & translated(lettering(msg),0,9)
+-- >     & translated(lettering(msg),(0,9))
 -- >     where
 -- >     msg = joined(["(",printed(r1),",",printed(r2),",",printed(r3),")"])
 -- >     base = rotated(solidRectangle(w,h),angle)
@@ -202,7 +202,7 @@ counter(p) = (newWidget(p)) { widget = Counter, value_ = 1 }
 -- >   widgets = [ withConversion(\v -> 1 + 9 * v , slider("length",-7,-7))
 -- >             , withConversion(\v -> v * 30    , timer("angle"  ,-7,-9)) ]
 -- > 
--- >   draw([l,a]) = rotated(translated(redBox,l/2,0),a)
+-- >   draw([l,a]) = rotated(translated(redBox,(l/2,0)),a)
 -- >       where
 -- >       redBox = colored(solidRectangle(l,0.25),RGB(1,0,0))
 --
@@ -270,7 +270,7 @@ type ReactorFun = ([Number],[Number]) -> Number
 -- >       , withConversion(\v -> 0.1 + 4.9*v, slider("radius",-8,3))
 -- >       ]
 -- > 
--- >   draw(v) = translated(redBall,0,v#ballPy)
+-- >   draw(v) = translated(redBall,(0,v#ballPy))
 -- >       where
 -- >       redBall = colored(solidCircle(v#radius),RGB(1,0,0))
 -- > 
@@ -337,7 +337,7 @@ widgetExample2 = guiActivityOf(widgets,init,update,draw)
 
   draw(values,(color@(RGB(r1,r2,r3)),angle,_)) = colored(base,color)
     & [blank, circle(5)]#s
-    & translated(lettering(msg),0,9)
+    & translated(lettering(msg),(0,9))
     where
     msg = joined(["(",printed(r1),",",printed(r2),",",printed(r3),")"])
     base = rotated(solidRectangle(w,h),angle)
@@ -363,7 +363,7 @@ widgetExample3 = guiDrawingOf(widgets,draw)
   widgets = [ withConversion(\v -> 1 + 9 * v , slider("length",-7,-7))
             , withConversion(\v -> v * 30    , timer("angle"  ,-7,-9)) ]
 
-  draw([l,a]) = rotated(translated(box,l/2,0),a)
+  draw([l,a]) = rotated(translated(box,(l/2,0)),a)
       where
       box = colored(solidRectangle(l,0.25),RGB(1,0,0))
 
@@ -383,14 +383,14 @@ widgetExample4 = guiDrawingOf(widgets,draw)
             ]
 
   draw([depth,decay,stem,angle]) = 
-    translated(scaled(branch(depth,decay,stem,angle), 2*decay, 2*decay),0,-5)
+    translated(scaled(branch(depth,decay,stem,angle), 2*decay, 2*decay),(0,-5))
 
   branch(0, _, _, _) = polyline[(0,0), (0,5)]
   branch(depth, decay, stem, angle) = blank
     & polyline[(0,0), (0, 5)]
-    & translated(smallBranch, 0, 5)
-    & translated(rotated(smallBranch,  angle), 0, stem * 5)
-    & translated(rotated(smallBranch, -angle), 0, stem * 5)
+    & translated(smallBranch, (0, 5))
+    & translated(rotated(smallBranch,  angle), (0, stem * 5))
+    & translated(rotated(smallBranch, -angle), (0, stem * 5))
     where
     smallBranch = scaled(branch(depth-1, decay, stem, angle), 1-decay, 1-decay)
 
@@ -410,7 +410,7 @@ widgetExample5 = guiDrawingOf(widgets,draw)
             , withConversion(\v -> 0.1 + 4.9*v, slider("radius",-8,3))
             ]
 
-  draw(v) = translated(colored(solidCircle(v#radius),RGB(1,0,0)),0,v#ballPy)
+  draw(v) = translated(colored(solidCircle(v#radius),RGB(1,0,0)),(0,v#ballPy))
 
   [ballPy,ballVy,time,radius] = [1..length(widgets)]
 
@@ -526,12 +526,12 @@ drawButton(Widget{..}) = drawLabel & drawSelection & drawHighlight
   msg = dilated(lettering(label),0.5)
   w = 0.9 * width
   h = 0.9 * height
-  drawLabel = translated(msg,x,y)
+  drawLabel = translated(msg,(x,y))
   drawSelection
-    | selected = translated(colored(solid,cgrey),x,y)
-    | otherwise = translated(outline,x,y)
+    | selected = translated(colored(solid,cgrey),(x,y))
+    | otherwise = translated(outline,(x,y))
   drawHighlight
-    | highlight = translated(colored(rectangle(width,height),light(cgrey)),x,y)
+    | highlight = translated(colored(rectangle(width,height),light(cgrey)),(x,y))
     | otherwise = blank
 
 drawCounter(Widget{..}) = drawLabel & drawSelection
@@ -540,16 +540,16 @@ drawCounter(Widget{..}) = drawLabel & drawSelection
   outline = scaled(polygon(points),w,h)
   points = [(0.5,0.3),(0,0.5),(-0.5,0.3),(-0.5,-0.3),(0,-0.5),(0.5,-0.3)]
   (x,y) = centerAt
-  msg(txt) = translated(dilated(lettering(txt),0.5),x,y)
+  msg(txt) = translated(dilated(lettering(txt),0.5),(x,y))
   w = 0.9 * width
   h = 0.9 * height
   drawLabel 
     | highlight = msg(printed(value_.#conversion))
     | otherwise = msg(label)
   drawSelection
-    | selected = translated(colored(solid,cgrey),x,y)
-    | highlight = translated(colored(outline,cblack),x,y)
-    | otherwise = translated(colored(outline,cgrey),x,y)
+    | selected = translated(colored(solid,cgrey),(x,y))
+    | highlight = translated(colored(outline,cblack),(x,y))
+    | otherwise = translated(colored(outline,cgrey),(x,y))
 
 drawToggle(Widget{..}) = drawSelection & drawLabel & drawHighlight
   where
@@ -557,14 +557,14 @@ drawToggle(Widget{..}) = drawSelection & drawLabel & drawHighlight
   h = 0.5
   x' = x + 2/5*width
   drawSelection
-    | selected = translated(colored(solidRectangle(w,h),cgrey),x',y)
-    | otherwise = translated(rectangle(0.9*w,0.9*h),x',y)
-  drawLabel = translated(msg,x - width/10,y)
+    | selected = translated(colored(solidRectangle(w,h),cgrey),(x',y))
+    | otherwise = translated(rectangle(0.9*w,0.9*h),(x',y))
+  drawLabel = translated(msg,(x - width/10,y))
   drawHighlight
     | highlight = colored(outline,light(cgrey))
-                & translated(rectangle(w,h),x',y)
+                & translated(rectangle(w,h),(x',y))
     | otherwise = colored(outline,light(light(cgrey)))
-  outline = translated(rectangle(width,height),x,y)
+  outline = translated(rectangle(width,height),(x,y))
   (x,y) = centerAt
   msg = dilated(lettering(label),0.5)
   
@@ -576,27 +576,27 @@ drawTimer(Widget{..}) = drawLabel & drawSelection & drawReset & drawHighlight
     | highlight = msg(printed(value_.#conversion))
     | otherwise = msg(label)
   drawSelection
-    | selected  = translated(box(0.5,0.5), x', y)
-    | otherwise = translated(rectangle(0.45,0.45),x',y)
-  drawReset = translated(box(0.3,height), xmin+0.15, y)
+    | selected  = translated(box(0.5,0.5), (x', y))
+    | otherwise = translated(rectangle(0.45,0.45),(x',y))
+  drawReset = translated(box(0.3,height), (xmin+0.15, y))
   drawHighlight
     | highlight = outline
-                & translated(rectangle(0.5,0.5),x',y)
+                & translated(rectangle(0.5,0.5),(x',y))
     | otherwise = colored(outline,light(cgrey))
-  outline = translated(rectangle(width,height),x,y)
+  outline = translated(rectangle(width,height),(x,y))
   (x,y) = centerAt
-  msg(txt) = translated(dilated(lettering(txt),0.5), x-width/10, y)
+  msg(txt) = translated(dilated(lettering(txt),0.5), (x-width/10, y))
   box(w,h) = colored(solidRectangle(w,h),cgrey)
   
 drawSlider(Widget{..}) = info & foreground & background
   where
-  info = translated(infoMsg,x,y-height/4)
-  foreground = translated(solidCircle(height/4),x',y')
-             & translated(colored(solidRectangle(width,height/4),cgrey),x,y')
+  info = translated(infoMsg,(x,y-height/4))
+  foreground = translated(solidCircle(height/4),(x',y'))
+             & translated(colored(solidRectangle(width,height/4),cgrey),(x,y'))
   x' = x - width/2 + fenced(value_,0,1) * width
   y' = y + height/4
   background
-    | highlight = translated(colored(rectangle(width,height),light(cgrey)),x,y)
+    | highlight = translated(colored(rectangle(width,height),light(cgrey)),(x,y))
     | otherwise = blank
   (x,y) = centerAt
   infoMsg = dilated(lettering(label<>": "<>printed(value_.#conversion)),0.5)
@@ -606,16 +606,16 @@ drawRandom(Widget{..}) = drawLabel & drawSelection & drawHighlight
   solid = scaled(solidRectangle(1,1),width,height)
   outline = scaled(rectangle(1,1),width,height)
   (x,y) = centerAt
-  msg(txt) = translated(dilated(lettering(txt),0.5),x,y)
+  msg(txt) = translated(dilated(lettering(txt),0.5),(x,y))
   drawLabel
     | highlight = msg(printed(value_.#conversion))
     | otherwise = msg(label)
   drawSelection
-    | selected = translated(colored(solid,cgrey),x,y)
+    | selected = translated(colored(solid,cgrey),(x,y))
     | otherwise = blank
   drawHighlight
-    | highlight = translated(outline,x,y)
-    | otherwise = colored(translated(outline,x,y),cgrey)
+    | highlight = translated(outline,(x,y))
+    | otherwise = colored(translated(outline,(x,y)),cgrey)
 
 -------------------------------------------------------------------------------
 -- Update

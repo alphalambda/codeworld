@@ -31,7 +31,7 @@ coordSize = 10.0
 -------------------------------------------------------------------------------
 
 label(l,(x,y)) =
-  translated(scaled(lettering(l),0.75,0.75),x+0.25,y+0.5)
+  translated(scaled(lettering(l),0.75,0.75),(x+0.25,y+0.5))
   -- p +| (0.25,0)) $ P.scale textscale textscale $ P.text text
 
 data Pt = PlusPt | EksPt | StarPt | DotPt
@@ -50,11 +50,11 @@ star_pt = plus_pt & eks_pt
 
 dot_pt =  solidCircle(dot_radius)
 
-drawPointAs fig (x,y) = translated(fig,x,y)
+drawPointAs fig (x,y) = translated(fig,(x,y))
 
 drawPoint = drawPointAs dot_pt
 
-drawCircle (o,p) = translated(circle(r),x,y)
+drawCircle (o,p) = translated(circle(r),(x,y))
     where
     (x,y) = o
     r = dist o p
@@ -92,7 +92,7 @@ showPointsLabels pts lbl = joined[showit pl | pl <- zip pts lbl]
     where
     showit (p,l) = l <> "=" <> showPoint(p) <> "  "
     
-backPlane n = translated(colored(solidRectangle(n,1),RGB(1,1,1)),0,-9.5)
+backPlane n = translated(colored(solidRectangle(n,1),RGB(1,1,1)),(0,-9.5))
 
 -------------------------------------------------------------------------------
 --- Synthetic Geometry
@@ -316,7 +316,7 @@ internal_beyond (a,b) c = angle a b c > 90
 --- Useful Constructions
 ---------------------------------------------------------------------
 
-centered(pts) = foreach(pts,\p -> translatedPoint(p,-cx,-cy))
+centered(pts) = foreach(pts,\p -> translatedPoint(p,(-cx,-cy)))
   where
   (cx,cy) = midpoint(pts)
   

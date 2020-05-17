@@ -37,12 +37,12 @@ x . f = f(x)
 atPositions(f)(ps) = combined(foreach(nps,make))
   where
   nps = zipped([1..],ps)
-  make(n,(x,y)) = translated(f(n),x,y)
+  make(n,(x,y)) = translated(f(n),(x,y))
 
 atPlacements(f)(ps) = combined(foreach(nps,make))
   where
   nps = zipped([1..],ps)
-  make(n,(x,y,a)) = translated(rotated(f(n),a),x,y)
+  make(n,(x,y,a)) = translated(rotated(f(n),a),(x,y))
 
 sprite pic _ = pic
 
@@ -71,7 +71,7 @@ stop(state) = state.trace.reversed
 
 stamp(pic)(state) = state { trace = tpic : state.trace }
   where
-  tpic = translated(rotated(pic,state.orientation),x,y)
+  tpic = translated(rotated(pic,state.orientation),(x,y))
   (x,y) = state.position
   
 save(f)(state) = state { trace = f(state) : state.trace }

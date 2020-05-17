@@ -324,7 +324,7 @@ trackLength(points) = sum(foreach(trackInfo(points),len))
 -- >   movie(t) = placedAlong(turtleShape,travel(remainder(4*t,tlen))) 
 -- >            & polyline(turtleTrack)
 -- > 
--- >   placedAlong(pic,((x,y),a)) = translated(rotated(turtleShape,a),x,y)
+-- >   placedAlong(pic,((x,y),a)) = translated(rotated(turtleShape,a),(x,y))
 -- >   travel = alongTrack(turtleTrack)
 -- >   tlen = trackLength(turtleTrack)
 -- > 
@@ -555,7 +555,7 @@ dottylines(ls) = ls.#dottyline.$combined
 dottyline :: [Point] -> Picture
 dottyline(pts) = pts.#makeDot.$combined
   where
-  makeDot(x,y) = translated(solidCircle(0.05),x,y)
+  makeDot(x,y) = translated(solidCircle(0.05),(x,y))
 
 -------------------------------------------------------------------------------
 -- Turtle Aux
@@ -734,8 +734,8 @@ turtleExamples =
   (slides.#make ++ [bullring.$run.$tracks.$dottylines]).$slideshow
   where
   make(i,l,s) = blank
-    & translated(lettering(i <> ": " <> l),0,9.5) 
-    & translated(colored(solidRectangle(10,1.2),RGB(1,1,1)),0,9.5)
+    & translated(lettering(i <> ": " <> l),(0,9.5) )
+    & translated(colored(solidRectangle(10,1.2),RGB(1,1,1)),(0,9.5))
     & s.$run.$tracks.$polylines
 
   slides =

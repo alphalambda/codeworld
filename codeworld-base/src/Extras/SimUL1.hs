@@ -217,7 +217,7 @@ make_sim(simrow,x_min,x_max,landmarks,parts) =
     dx = (x_max-x_min)/parts
     
     render_mark(m) =
-      translated(polyline[(0,0.2),(0,-0.2)],screen_coords(x_min+m*dx),0)
+      translated(polyline[(0,0.2),(0,-0.2)],(screen_coords(x_min+m*dx),0))
       
     render_line =
       let
@@ -227,13 +227,13 @@ make_sim(simrow,x_min,x_max,landmarks,parts) =
                 & combined[render_mark(m) | m <- [0..parts]]
       in
         blank
-        & colored(translated(simline,0,simrow),cgreen)
-        & combined[translated(minitext(lname,0.5),screen_coords(lpos),simrow-0.5)
+        & colored(translated(simline,(0,simrow)),cgreen)
+        & combined[translated(minitext(lname,0.5),(screen_coords(lpos),simrow-0.5))
                   | (lname,lpos) <- landmarks
                   ]
         
     render_shape(position,velo,shape) =
-        translated(shape',xpos,simrow)
+        translated(shape',(xpos,simrow))
         where
         shape' | velo < 0 = scaled(shape,-1,1)
                | otherwise = shape
@@ -242,7 +242,7 @@ make_sim(simrow,x_min,x_max,landmarks,parts) =
     render_strobe(strobe,color) =
       let
         render_single(time,position,velo) =
-              colored(translated(txt,screen_coords(position),simrow+1+number),color)
+              colored(translated(txt,(screen_coords(position),simrow+1+number)),color)
               where
               number = if velo >= 0 then 0 else 1
               txt = scaled(text(txt3),0.6,0.6)
@@ -289,14 +289,14 @@ make_chart(ct,cx,ylabel,t_max,x_min,x_max) =
         labelpos = 0.55 * chart_size
         chart =
             rectangle(chart_size,chart_size)
-            & translated(minilabel(0,0.4),-halfsize+0.2,-halfsize-0.2)
-            & translated(minilabel(t_max,0.4),halfsize-0.2,-halfsize-0.2)
-            & translated(minilabel(x_min,0.4),-halfsize-0.5,-halfsize+0.2)
-            & translated(minilabel(x_max,0.4),-halfsize-0.5,halfsize-0.2)
-            & translated(scaled(text("time"),0.8,0.8),0,-labelpos)
-            & translated(rotated(scaled(text(ylabel),0.8,0.8),90),-labelpos,0)
+            & translated(minilabel(0,0.4),(-halfsize+0.2,-halfsize-0.2))
+            & translated(minilabel(t_max,0.4),(halfsize-0.2,-halfsize-0.2))
+            & translated(minilabel(x_min,0.4),(-halfsize-0.5,-halfsize+0.2))
+            & translated(minilabel(x_max,0.4),(-halfsize-0.5,halfsize-0.2))
+            & translated(scaled(text("time"),0.8,0.8),(0,-labelpos))
+            & translated(rotated(scaled(text(ylabel),0.8,0.8),90),(-labelpos,0))
       in
-        colored(translated(chart,ct,cx),cblack)
+        colored(translated(chart,(ct,cx)),cblack)
 
     render_graph(pts,color) = colored(polyline[screen_coords p | p <- pts],color)
 
@@ -350,15 +350,15 @@ render(model) =
 render_info(time,click,nstates) =
     blank
     -- time box
-    & translated(text("time"),-8,9)
-    & translated(text(approximate(time)),-8,8)
-    & translated(rectangle(2,2),-8,8.5)
+    & translated(text("time"),(-8,9))
+    & translated(text(approximate(time)),(-8,8))
+    & translated(rectangle(2,2),(-8,8.5))
     -- click box
     & render_click(click)
     -- data box
-    & translated(scaled(text("position"),0.6,0.6),-0.5,9)
-    & translated(scaled(text("velocity"),0.6,0.6),2,9)
-    & translated(rectangle(10,1+nstates),-1,9-0.5*nstates)
+    & translated(scaled(text("position"),0.6,0.6),(-0.5,9))
+    & translated(scaled(text("velocity"),0.6,0.6),(2,9))
+    & translated(rectangle(10,1+nstates),(-1,9-0.5*nstates))
 
 render_click(Nothing)= blank
 
@@ -366,14 +366,14 @@ render_click(Just (x,y)) =
   let
     txt = "(" <> approximate(x) <> "," <> approximate(y) <> ")"
   in
-    translated(text("click"),7,9)
-    & translated(text(txt),7,8)
-    & translated(rectangle(4.5,2),7,8.5)
+    translated(text("click"),(7,9))
+    & translated(text(txt),(7,8))
+    & translated(rectangle(4.5,2),(7,8.5))
 
 render_data(name,position,velocity,row) = blank
-    & translated(text(name),-4,8-row)
-    & translated(text(approximate(position)),-0.5,8-row)
-    & translated(text(approximate(velocity)),2,8-row)
+    & translated(text(name),(-4,8-row))
+    & translated(text(approximate(position)),(-0.5,8-row))
+    & translated(text(approximate(velocity)),(2,8-row))
 
 
 -------------------------------------------------------------------------------

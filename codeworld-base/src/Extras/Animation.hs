@@ -181,8 +181,8 @@ translating :: (Script,Number,Number) -> Script
 translating((p,obj),dx,dy) = (p,move)
   where
   move t
-    | t < p = translated(obj(t),t'*dx,t'*dy)
-    | otherwise = translated(obj(t),dx,dy)
+    | t < p = translated(obj(t),(t'*dx,t'*dy))
+    | otherwise = translated(obj(t),(dx,dy))
     where
     t' = t/p
 
@@ -324,9 +324,9 @@ fading(d,RGBA(r,g,b,a))(_,m) = (d,m')
 turning :: (Duration,Number,Number,Number) -> Motion
 turning(p,cx,cy,angle)(_,a) = (p,a3)
   where
-  (_,a1) = translating((0,a),-cx,-cy) -- 
+  (_,a1) = translating((0,a),(-cx,-cy)) -- 
   (_,a2) = rotating((p,a1),angle)     -- s2 = rotating_(p,angle)(s1)
-  (_,a3) = translating((0,a2),cx,cy)  -- s3 = moving(0,cx,cy)(s2)
+  (_,a3) = translating((0,a2),(cx,cy))  -- s3 = moving(0,cx,cy)(s2)
 -}
 
 -- |Rotate around a pivot `(cx,cy)` by the given angle
