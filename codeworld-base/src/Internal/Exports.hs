@@ -28,7 +28,6 @@ module Internal.Exports (
     , Picture
     , combined
     , blank
-    , centerDot
     , dot
     , circle
     , solidCircle
@@ -107,15 +106,16 @@ module Internal.Exports (
     , distribute
     , map
     , filter
-    , partial
+    , plug1
+    , plug2
     -- * Events
     , Event(..)
     -- * Debugging
     , traced
     ) where
 
-import "base" Prelude (map,filter,IO)
-
+import "base" Prelude (IO)
+import qualified "base" Prelude as P
 import Internal.Num
 import Internal.Prelude
 import Internal.Text
@@ -138,7 +138,7 @@ import Internal.Picture hiding (coordinatePlane)
 --
 -- For example, the following code will produce several dots along the X axis:
 --
--- > centerDot |> clap(translated, [(-1,0),(0,0),(1,0) ])
+-- > dot(0,0) |> clap(translated, [(-1,0),(0,0),(1,0) ])
 --
 -- All the cloned and transformed Pictures are 'combined' into
 -- a single resulting Picture.
@@ -176,12 +176,12 @@ centerDot = solidCircle(0.1)
 -- can be rewritten using the pipe as:
 -- 
 -- > program = drawingOf(rectangle(1,3) 
--- >                     |> clap(translated,[(2,5)]) 
--- >                     |> clap(rotated, [45])
+-- >                     |> plug2(translated,(2,5))
+-- >                     |> plug2(rotated,45)
 -- >                     |> combined)
 --
--- The pipe is especially useful when combined with the 'clap'
--- function, as the example above illustrates.
+-- The may need auxiliary functions, such as 'plug1' and 'plug2', to
+-- specify which argument to pipe, as the example above illustrates.
 (|>) :: a -> (a -> b) -> b
 x |> f = f(x)
 
@@ -209,14 +209,24 @@ clone(o) = repeating([o])
 distribute :: ((a -> b), [a]) -> [b]
 distribute(f,xs) = map f xs
 
+-- | Select those elements from a list which satisfy the given predicate.
+-- The list usually comes from a pipeline.
+filter :: (a -> Truth) -> [a] -> [a]
+filter = P.filter
+
+-- | Apply the given function to each element of a list that comes from
+-- a pipeline.
+map :: (a -> b) -> [a] -> [b]
+map = P.map
+
 -- | Partially apply a function of two arguments to a given first
 -- argument, leaving the second one free to be received via a pipeline.
 --
--- For example, the following code is equivalent to @rotated(centerDot,45)@
+plug1 :: ((a,b) -> c, a) -> b -> c
+plug1(f,a)(b) = f(a,b)
+
+-- | Partially apply a function of two arguments to a given second
+-- argument, leaving the first one free to be received via a pipeline.
 --
--- > 45 |> partial(rotated,centerDot)
---
--- This function is intended to be used in pipelines.
---
-partial :: ( (a,b) -> c, a ) -> b -> c
-partial(f,a)(b) = f(a,b)
+plug2 :: ((a,b) -> c, b) -> a -> c
+plug2(f,b)(a) = f(a,b)
