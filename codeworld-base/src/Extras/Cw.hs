@@ -85,7 +85,7 @@ autoSlideshow(slides,period) = animationOf(sshow)
     | len < 1 = pictures([])
     | otherwise = slides#num
     where
-    num = 1 + remainder(truncation(t/period), len)
+    num = 1 + remainder(truncated(t/period), len)
 
 -- $randomIntro
 -- All the randomized versions of entry points provided in this module use
@@ -466,7 +466,7 @@ grid(cell,rows,cols) = translated(pictures(rpic),-10,10)
 -- > movie(t) = sprite1(row,col) & background
 -- >   where
 -- >   -- Jump between rows 1 and 10 every 100 seconds
--- >   row = 1 + truncation(10*saw(t,100))
+-- >   row = 1 + truncated(10*saw(t,100))
 -- >   -- Move smoothly between cols 1 and 10 every 10 seconds
 -- >   col = 1 + 9*saw(t,10)
 -- > 
@@ -492,14 +492,14 @@ sprite(pic,rows,cols) = transform
 
 -- | @overlays(fig,n)@ is a shortcut for @fig(1) & fig(2) & ... & fig(n)@
 overlays :: ((Number -> Picture),Number) -> Picture
-overlays(f,n) = overlays'(f,max(0,truncation(n)))
+overlays(f,n) = overlays'(f,max(0,truncated(n)))
     where
     overlays'(f,0) = blank
     overlays'(f,n) = overlays'(f,n-1) & f(n)
 
 -- | @underlays(fig,n)@ is a shortcut for @fig(n) & fig(n-1) & ... & fig(1)@
 underlays :: ((Number -> Picture),Number) -> Picture
-underlays(f,n) = underlays'(f,max(0,truncation(n)))
+underlays(f,n) = underlays'(f,max(0,truncated(n)))
     where
     underlays'(f,0) = blank
     underlays'(f,n) = f(n) & underlays'(f,n-1)
@@ -761,3 +761,15 @@ tree(tt,draw,size) = dilated(fulltree,20/sfactor)
       output(ns,d,w) = tree'(ns#1,d,w)
                       & polyline([(d+w/2,0.5),(d+w/2,1)])
                       & polyline([(d+w/2,1),(offset+alloc/2,1)])
+
+interactionOf(initial,update,handle,draw) = activityOf(initial,next,draw)
+    where
+    next(state,event) = case event of
+                        TimePassing(dt) -> update(state,dt)
+                        _               -> handle(state,event)
+
+simulationOf(initial,update,draw) = activityOf(initial,next,draw)
+    where
+    next(state,event) = case event of
+                        TimePassing(dt) -> update(state,dt)
+                        _               -> state

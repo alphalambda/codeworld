@@ -191,7 +191,7 @@ type Track = [Point]
 -- different tracks will be joined together into a single Track, as
 -- if the Turtle pen was always down.
 track :: TurtleCommand -> Track
-track(cmd) = cmd.$tracks.$concatenation
+track(cmd) = cmd.$tracks.$concatenated
 
 -- | Convert a Turtle command into a list of Tracks. A Track ends when
 -- you use the 'pu' Turtle command. After that, the Turtle position
@@ -516,7 +516,7 @@ turtle = run([ rt(150), fd(0.2), lt(120), fd(0.2), lt(60), fd(0.4), lt(120)
 -- >     
 -- >   turtleProgram = repeat(10, [pd,makeTrack,pu,home])
 -- >   makeTrack = repeat(100, [ randomized(\r -> fd(2*r-1), 1.5)
--- >                           , randomized(\r -> rt(90*truncation(r)), 4)
+-- >                           , randomized(\r -> rt(90*truncated(r)), 4)
 -- >                           ])
 --
 randomized :: (Number -> TurtleCommand,Number) -> TurtleCommand
@@ -592,7 +592,7 @@ randomExample = randomDrawingOf(draw)
   draw(random) = polyline(track(prog(random)))
   prog(random) = run(foreach(first(random,50), prog1))
   prog1(r) = run([ prog2(randomNumbers(r)), rt(180) ])
-  prog2(random) = repeat(truncation(100*random#1), [fd(10),bk(9.8),rt(2)])
+  prog2(random) = repeat(truncated(100*random#1), [fd(10),bk(9.8),rt(2)])
   
 
 -- | The first example is based on the following code:

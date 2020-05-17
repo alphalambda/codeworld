@@ -36,7 +36,7 @@ module Internal.Num
     , abs
     , absoluteValue
     , signum
-    , truncation
+    , truncated
     , rounded
     , ceiling
     , floor
@@ -251,10 +251,10 @@ signum = fromDouble . P.signum . toDouble
 
 {-| Gives the number without its fractional part.
 
-  For example, truncate(4.2) is 4, while truncate(-4.7) is -4.
+  For example, truncated(4.2) is 4, while truncated(-4.7) is -4.
 -}
-truncation :: Number -> Number
-truncation = fromInteger . P.truncate . toDouble
+truncated :: Number -> Number
+truncated = fromInteger . P.truncate . toDouble
 
 {-| Gives the number rounded to the nearest integer.
 
@@ -286,7 +286,7 @@ floor = fromInteger . P.floor . toDouble
 -}
 quotient :: HasCallStack => (Number, Number) -> Number
 quotient (_, 0) = withFrozenCallStack (P.error "Cannot divide by zero.")
-quotient (a, b) = truncation (a / b)
+quotient (a, b) = truncated (a / b)
 
 {-| Gives the remainder when dividing two numbers.
 

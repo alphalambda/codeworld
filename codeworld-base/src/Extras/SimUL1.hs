@@ -52,12 +52,13 @@ motionParams = Params
     , segments = 10
     }
 
-motionOf(model_data,velocity_function,params) =
-    if use_clicks(params) then interactionOf(init,update',handle,render)
-    else simulationOf(init,update',render)
+motionOf(model_data,velocity_function,params) = activityOf(init,update',render)
     where
     init = initial_model model_data velocity_function params
-    update' = speeded(update_speedup params,repeated_update(update_iterations params))
+    update' = speeded(params.update_speedup,
+                      repeated_update'(params.use_clicks,params.update_iterations))
+
+x.f = f(x)
 
 -------------------------------------------------------------------------------
 --- Code for describing the kinematic model
@@ -111,7 +112,13 @@ initial_model model_data velocity_function params rs = Model
 
 speeded(times,updater) = updater'
     where
-    updater'(model,dtime) = updater(model,times*dtime)
+    updater'(model,TimePassing(dtime)) = updater(model,TimePassing(times*dtime))
+    updater'(model,event) = updater(model,event)
+
+repeated_update' (interactive,n) (model,event) = case event of
+    TimePassing(dt) -> repeated_update n (model,dt)
+    _               -> if interactive then handle(model,event)
+                       else model
 
 repeated_update :: Number -> (Model,Time) -> Model
 repeated_update n = update

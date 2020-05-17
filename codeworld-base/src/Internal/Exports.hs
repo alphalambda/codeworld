@@ -157,42 +157,22 @@ module Internal.Exports (
     , Event(..)
     -- * Debugging
     , traced
-    -- * Deprecated definitions (do not use)
-    , path
-    , thickPath
-    {- , text -}
-    {- , styledText -}
-    , simulationOf
-    , debugSimulationOf
-    , interactionOf
-    , debugInteractionOf
-    , collaborationOf
-    -- * Locally fixed identifiers
-    , concatenated
-    , truncated
-    , flattened
-{-
-    , cyan
-    , magenta
-    , aquamarine
-    , azure
-    , violet
-    , chartreuse
-    , rose
--}
+    -- Control Flow
+    , composition
+    , distribute
+    , flat
+    , xCoord
+    , yCoord
+    -- Pipes
     , (|>)
     , apply
     , clap
     , clone
-    , composition
-    , distribute
-    , flat
     , map
-    , xCoord
-    , yCoord
+    , filter
     ) where
 
-import "base" Prelude (map,IO)
+import "base" Prelude (map,filter,IO)
 
 import Internal.Num
 import Internal.Prelude
@@ -208,12 +188,6 @@ coordinatePlane = polyline([(-10,0),(10,0)]) & polyline([(0,-10),(0,10)])
 
 composition :: [Picture] -> Picture
 composition = pictures
-
-concatenated :: [[a]] -> [a]
-concatenated = concatenation
-
-truncated :: Number -> Number
-truncated = truncation
 
 flattened :: [Picture] -> Picture
 flattened = pictures

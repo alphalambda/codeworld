@@ -85,5 +85,5 @@ autoSlideshow(slides,period) = animationOf(sshow)
     | len < 1 = pictures([])
     | otherwise = slides#num
     where
-    num = 1 + remainder(truncation(t/period), len)
+    num = 1 + remainder(truncated(t/period), len)
 

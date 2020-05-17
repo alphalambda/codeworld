@@ -53,7 +53,7 @@ import Prelude
 -- >             ]
 -- > 
 -- >   fullrange(v) = 1 + 19 * v
--- >   flipflop(v) = truncation(1 + 2 * v)
+-- >   flipflop(v) = truncated(1 + 2 * v)
 -- >   radiusrange(v) = 0.2 + 0.8 * v
 -- > 
 -- > draw(values) = blank
@@ -89,7 +89,7 @@ guiDrawingOf(widgetsUser,drawUser) = activityOf(initAll,updateAll,drawAll)
 -- >   widgets = [ withConversion(\v -> 20 * v, slider("width",-7,-7))
 -- >             , withConversion(\v -> 2 + 3 * v, slider("height",-7,-9))
 -- >             , withConversion
--- >               (\v -> truncation(1 + 2*v), toggle("show circle",-7,-5))
+-- >               (\v -> truncated(1 + 2*v), toggle("show circle",-7,-5))
 -- >             , button("restart",-7,-3)
 -- >             , randomBox("new color",-7,-1)
 -- >             ]
@@ -310,7 +310,7 @@ widgetExample1 = guiDrawingOf(widgets,draw)
             ]
 
   fullrange(v) = 1 + 19 * v
-  flipflop(v) = truncation(1 + 2 * v)
+  flipflop(v) = truncated(1 + 2 * v)
   radiusrange(v) = 0.2 + 0.8 * v
 
   draw(values) = blank
@@ -330,7 +330,7 @@ widgetExample2 = guiActivityOf(widgets,init,update,draw)
   widgets = [ withConversion(\v -> 20 * v, slider("width",-7,-7))
             , withConversion(\v -> 2 + 3 * v, slider("height",-7,-9))
             , withConversion
-              (\v -> truncation(1 + 2*v), toggle("show circle",-7,-5))
+              (\v -> truncated(1 + 2*v), toggle("show circle",-7,-5))
             , button("restart",-7,-3)
             , randomBox("new color",-7,-1)
             ]
@@ -376,7 +376,7 @@ widgetExample4 = guiDrawingOf(widgets,draw)
   -- decay = 0.5 : Each smaller branch decreases in size by 50%.
   -- stem  = 0.5 : Branches occur 50% of the way up the stem.
   -- angle = 30  : Branches point 30 degrees away from the stem.
-  widgets = [ slider("depth",-8,9.5).#setConversion(\p -> truncation(3 + 4*p))
+  widgets = [ slider("depth",-8,9.5).#setConversion(\p -> truncated(3 + 4*p))
             , timer("decay",-8,8).#setConversion(\p -> 0.3 + 0.25*saw(p,5))
             , timer("stem",-8,6.5).#setConversion(\p -> saw(p,17))
             , slider("angle",-8,5).#setConversion(\p -> 5 + 30*p)

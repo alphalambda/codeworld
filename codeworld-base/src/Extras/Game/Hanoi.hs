@@ -46,10 +46,10 @@ solver(n,src,dst,o1:other)
     k1 = csum#(order-1)#(r+1)
     n0 = csum#order#r
     n1 = csum#order#(r+1)
-    k = truncation(k0 + (n-n0)/(n1-n0) * (k1-k0))
+    k = truncated(k0 + (n-n0)/(n1-n0) * (k1-k0))
     isLevel = discriminant#k == n
     l = level(n,1+length(other))
-    kl = truncation(l)
+    kl = truncated(l)
 
     level(num,2) = (sqrt(1+8*num)-1)/2
     level(num,len) = num
@@ -264,3 +264,9 @@ move(i,j)(pegs) =
 -------------------------------------------------------------------------------
 
 resized(pic,fac) = translated(dilated(translated(pic,10,-10),fac),-10,10)
+
+interactionOf(initial,update,handle,draw) = activityOf(initial,next,draw)
+    where
+    next(state,event) = case event of
+                        TimePassing(dt) -> update(state,dt)
+                        _               -> handle(state,event)

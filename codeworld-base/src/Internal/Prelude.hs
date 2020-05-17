@@ -58,7 +58,7 @@ module Internal.Prelude
     , while
     , until
     , after
-    , concatenation
+    , concatenated
     , L.subsequences
     , L.permutations
     , sorted
@@ -253,8 +253,8 @@ after :: ([a], a -> Truth) -> [a]
 after (xs, p) = P.dropWhile p xs
 
 -- | Gives the concatenation of all of the lists in its input.
-concatenation :: [[a]] -> [a]
-concatenation = P.concat
+concatenated :: [[a]] -> [a]
+concatenated = P.concat
 
 -- | Gives a list of numbers reordered into increasing order.
 sorted :: [Number] -> [Number]

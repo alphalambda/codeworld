@@ -16,7 +16,7 @@ import Prelude
 import Extras.Op((<$>))
 
 u3c1l1a2 :: [Number] -> [Number]
-u3c1l1a2(random) = truncation <$> (230 +) <$> (538 *) <$> random
+u3c1l1a2(random) = truncated <$> (230 +) <$> (538 *) <$> random
 
 object =
     [ translated(solidCircle(0.05),-5.17, 4.21)

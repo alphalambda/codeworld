@@ -187,7 +187,7 @@ run(f:fs)(x) = run(fs)(f(x))
 -- the decimals will be ignored. For example, @recur(-7.3,f)@ will repeat
 -- @7@ times.
 recur :: (Number,value -> value) -> value -> value
-recur(n,f) = go (truncation(abs(n)))
+recur(n,f) = go (truncated(abs(n)))
     where
     go 0 x = x
     go n x = go (n-1) (f x)
@@ -342,8 +342,10 @@ list(f) = [f(i) | i <- [1..]]
 -- | Converts a given function @f@ into a finite
 -- list @[f(1),f(2),f(3),...,f(n)]@,
 -- where @n@ is the given number.
+-- If you use a Number with decimals,
+-- the decimals will be ignored.
 listn :: (Number -> value, Number) -> [value]
-listn(f,n) = [f(i) | i <- [1..truncation(n)]]
+listn(f,n) = [f(i) | i <- [1..truncated(n)]]
 
 -- | A list containing all the elements of the given list except the
 -- last few. Example: @butLast([1,2,3,4],1)@ is @[1,2,3]@.
