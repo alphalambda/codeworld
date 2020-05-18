@@ -104,6 +104,7 @@ module Internal.Exports (
     , apply
     , clone
     , distributed
+    , iterated
     , map
     , filter
     , plug1
@@ -219,7 +220,7 @@ filter = P.filter
 -- is the result of applying the given @transform@ with the given
 -- @parameter@ to the previous element.
 -- When the initial @object0@ comes from a pipeline, the result is
--- @[object0, object1, object2, ... ]
+-- @[object0, object1, object2, ... ]@
 -- where
 -- @object1@ is @transform(object0, parameter)@,
 -- @object2@ is @transform(object1, parameter)@
