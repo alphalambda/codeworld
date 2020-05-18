@@ -52,15 +52,17 @@ module Internal.Exports (
     , styledLettering
     , Font(..)
     , TextStyle(..)
-    , clap
     -- * Operations on Pictures
     , (&)
+    , right
+    , up
     , colored
-    , translated
     , scaled
     , dilated
     , rotated
     , clipped
+    , translated
+    , clap
     -- * Colors
     , Color
     , pattern RGBA
@@ -85,11 +87,13 @@ module Internal.Exports (
     , Point
     , xCoord
     , yCoord
-    , translatedPoint
+    , upPoint
+    , rightPoint
     , rotatedPoint
     , reflectedPoint
     , scaledPoint
     , dilatedPoint
+    , translatedPoint
     -- * Vectors
     , Vector
     , vectorLength
@@ -109,6 +113,10 @@ module Internal.Exports (
     , filter
     , plug1
     , plug2
+    -- * Parameters
+    , newParams
+    , get
+    , set
     -- * Events
     , Event(..)
     -- * Debugging
@@ -117,6 +125,10 @@ module Internal.Exports (
 
 import "base" Prelude (IO)
 import qualified "base" Prelude as P
+
+import qualified Data.Map.Strict as M
+import qualified Data.Text as T
+
 import Internal.Num
 import Internal.Prelude
 import Internal.Text
@@ -150,6 +162,26 @@ clap(f,xs)(o) = combined([ f(o,x) | x <- xs ])
 -- | 'dot(x,y)' is a Picture of a small dot centered at the Point (x,y).
 dot :: (Number,Number) -> Picture
 dot(p) = translated(centerDot,p)
+
+-- | A copy of the given @picture@ that is shown the given number of units
+-- to the right of the original one.
+right :: (Picture,Number) -> Picture
+right(p,n) = translated(p,(n,0))
+
+-- | A copy of the given @picture@ that is shown the given number of units
+-- up from the original one.
+up :: (Picture,Number) -> Picture
+up(p,n) = translated(p,(0,n))
+
+-- | A 'Point' that is the given number of units to the right of the
+-- given 'Point'.
+rightPoint :: (Point,Number) -> Point
+rightPoint((x,y),n) = (x+n, y)
+
+-- | A 'Point' that is the given number of units up from the
+-- given 'Point'.
+upPoint :: (Point,Number) -> Point
+upPoint((x,y),n) = (x, y+n)
 
 -- | A Picture of a dot standing at the origin.
 centerDot :: Picture
@@ -216,19 +248,23 @@ distributed(f,xs) = map f xs
 filter :: (a -> Truth) -> [a] -> [a]
 filter = P.filter
 
--- | @iterated(transform,parameter)@ is a list where each element
--- is the result of applying the given @transform@ with the given
--- @parameter@ to the previous element.
--- When the initial @object0@ comes from a pipeline, the result is
+-- | @iterated(transform,[parameter0,parameter1,...])@ is a list
+-- where each element
+-- is the result of applying the given @transform@ with a
+-- @parameter@ to the previous element. The given parameter list is
+-- consumed sequentially, so that each new application
+-- uses a new @parameter@.
+-- When an initial @object0@ comes from a pipeline, the result is
 -- @[object0, object1, object2, ... ]@
 -- where
--- @object1@ is @transform(object0, parameter)@,
--- @object2@ is @transform(object1, parameter)@
+-- @object1@ is @transform(object0, parameter0)@,
+-- @object2@ is @transform(object1, parameter1)@
 -- and so on.
-iterated :: ((object,param) -> object,param) -> object -> [object]
-iterated(f,p) = next
+iterated :: ((object,param) -> object,[param]) -> object -> [object]
+iterated(f,[])(o) = [o]
+iterated(f,p:ps)(o) = o : iterated(f,ps)(next)
     where
-    next(o) = o : next(f(o,p))
+    next = f(o,p)
 
 -- | Apply the given function to each element of a list that comes from
 -- a pipeline.
@@ -246,3 +282,14 @@ plug1(f,a)(b) = f(a,b)
 --
 plug2 :: ((a,b) -> c, b) -> a -> c
 plug2(f,b)(a) = f(a,b)
+
+type Params = M.Map T.Text Number
+
+newParams :: Params
+newParams = M.empty
+
+set :: (Text,Number) -> Params -> Params
+set(k,v) = M.insert (fromCWText k) v
+
+get :: (Text,Number) -> Params -> Number
+get(k,v) = M.findWithDefault v (fromCWText k)

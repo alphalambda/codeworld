@@ -10,7 +10,7 @@ module Extras.Stamp(
     -- $intro
     StampTrack, render, position, orientation, placement, trace
     , atPositions, atPlacements, sprite, sprites
-    , start, stop, stamp, save, right, left, up, down, turn
+    , start, stop, stamp, save, stampRight, stampLeft, stampUp, stampDown, turn
     ) where
 
 import Prelude
@@ -76,25 +76,25 @@ stamp(pic)(state) = state { trace = tpic : state.trace }
   
 save(f)(state) = state { trace = f(state) : state.trace }
 
-right(len)(state) = state { position = position' }
+stampRight(len)(state) = state { position = position' }
   where
   position' = (px+len*dx,py+len*dy)
   (px,py) = state.position
   (dx,dy) = rotatedPoint((1,0),state.orientation)
 
-left(len)(state) = state { position = position' }
+stampLeft(len)(state) = state { position = position' }
   where
   position' = (px+len*dx,py+len*dy)
   (px,py) = state.position
   (dx,dy) = rotatedPoint((-1,0),state.orientation)
 
-up(len)(state) = state { position = position' }
+stampUp(len)(state) = state { position = position' }
   where
   position' = (px+len*dx,py+len*dy)
   (px,py) = state.position
   (dx,dy) = rotatedPoint((0,1),state.orientation)
 
-down(len)(state) = state { position = position' }
+stampDown(len)(state) = state { position = position' }
   where
   position' = (px+len*dx,py+len*dy)
   (px,py) = state.position
