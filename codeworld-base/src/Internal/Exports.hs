@@ -103,7 +103,7 @@ module Internal.Exports (
     , (|>)
     , apply
     , clone
-    , distribute
+    , distributed
     , map
     , filter
     , plug1
@@ -185,7 +185,7 @@ centerDot = solidCircle(0.1)
 (|>) :: a -> (a -> b) -> b
 x |> f = f(x)
 
--- | This function is similar to 'distribute' but uses functions of two
+-- | This function is similar to 'distributed' but uses functions of two
 -- arguments, where the first argument is an `object` and the second argument
 -- is a `parameter`. When a list of `objects` is received from a pipeline,
 -- an output stream of transformed objects is produced, where a different
@@ -204,15 +204,30 @@ apply(f,xs)(os) = [ f(o,x) | x <- xs | o <- os ]
 clone :: object -> [object]
 clone(o) = repeating([o])
 
--- | @distribute(transformation,objects)@ applies the given 'transformation'
--- to each object in the given list of 'objects'.
-distribute :: ((a -> b), [a]) -> [b]
-distribute(f,xs) = map f xs
+-- | @distributed(transformation,objects)@ is a list of
+-- objects, where each object is created by applying the given
+-- 'transformation' to each object in the given list of 'objects'.
+distributed :: ((a -> b), [a]) -> [b]
+distributed(f,xs) = map f xs
 
 -- | Select those elements from a list which satisfy the given predicate.
 -- The list usually comes from a pipeline.
 filter :: (a -> Truth) -> [a] -> [a]
 filter = P.filter
+
+-- | @iterated(transform,parameter)@ is a list where each element
+-- is the result of applying the given @transform@ with the given
+-- @parameter@ to the previous element.
+-- When the initial @object0@ comes from a pipeline, the result is
+-- @[object0, object1, object2, ... ]
+-- where
+-- @object1@ is @transform(object0, parameter)@,
+-- @object2@ is @transform(object1, parameter)@
+-- and so on.
+iterated :: ((object,param) -> object,param) -> object -> [object]
+iterated(f,p) = next
+    where
+    next(o) = o : next(f(o,p))
 
 -- | Apply the given function to each element of a list that comes from
 -- a pipeline.

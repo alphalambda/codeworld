@@ -11,7 +11,7 @@ where
 import Prelude
 import Extras.Op((<?>),(<$>))
 import Extras.Cw(pageFromTexts)
-import Extras.Util(iterated,cumulativeSums,printedNumbers,rJustified)
+import Extras.Util(cumulativeSums,printedNumbers,rJustified)
 
 -- traced(x,_) = x
 
@@ -66,7 +66,9 @@ iroot'(vec,n) = go(1,vec)
   go(index,x:xs) | n <= x = index
                  | otherwise = go(index+1,xs)
                  
-csum = iterated(cumulativeSums,[1..])
+csum = iterate(cumulativeSums,[1..])
+    where
+    iterate(f,x) = x : iterate(f,f(x))
     
 combo(0,src,dst,_) = [move(src,dst)]
 combo(1,src,dst,other) = moveSub(src,dst,other)
