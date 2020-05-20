@@ -325,29 +325,31 @@ closedCurvePoints :: ([Point],Number) -> [Point]
   -- initial interpolation (p1,p2)
   bezierFirst(p1,p2,p3,grain)
     | d12 <= grain = [p1]
-    | otherwise    = [ qerp2(p1,c,p2,t) | t <- [0,grain..l] ]
+    | otherwise    = [ qerp2(p1,c,p2,t) | t <- [0,step..l] ]
     where
     c = vectorSum(p2,scaledVector(vectorDifference(p1,p3),r/2))
     r = d12 / (d12 + d23)
     d12 = dist(p1,p2)
     d23 = dist(p2,p3)
-    l = 1 - grain / d12
+    step = grain / d12
+    l = 1 - step
 
   -- final interpolation (p2,p3)
   bezierLast(p1,p2,p3,grain)
     | d23 <= grain = [p2]
-    | otherwise    = [ qerp2(p2,c,p3,t) | t <- [0,grain..l] ]
+    | otherwise    = [ qerp2(p2,c,p3,t) | t <- [0,step..l] ]
     where
     c = vectorSum(p2,scaledVector(vectorDifference(p3,p1),r/2))
     r = d23 / (d12 + d23)
     d12 = dist(p1,p2)
     d23 = dist(p2,p3)
-    l = 1 - grain / d23
+    step = grain / d23
+    l = 1 - step
 
   -- middle interpolation (p2,p3)
   bezierMiddle(p1,p2,p3,p4,grain)
     | d23 <= grain = [p2]
-    | otherwise    = [ cerp2(p2,c1,c2,p3,t) | t <- [0,grain..l] ]
+    | otherwise    = [ cerp2(p2,c1,c2,p3,t) | t <- [0,step..l] ]
     where
     c1 = vectorSum(p2,scaledVector(vectorDifference(p3,p1),r1/2))
     c2 = vectorSum(p3,scaledVector(vectorDifference(p2,p4),r2/2))
@@ -356,7 +358,8 @@ closedCurvePoints :: ([Point],Number) -> [Point]
     d12 = dist(p1,p2)
     d23 = dist(p2,p3)
     d34 = dist(p3,p4)
-    l = 1 - grain / d23
+    step = grain / d23
+    l = 1 - step
 
 
   ccp([],_) = []
