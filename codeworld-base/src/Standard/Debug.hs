@@ -1,5 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-
   Copyright 2019 The CodeWorld Authors. All rights reserved.
@@ -25,12 +26,14 @@ module Standard.Debug (
     , drawingOf, animationOf, autoSlideshow, slideshow
     -- * Redefined drawing primitives
     , solidRectangle, solidCircle, solidPolygon, solidClosedCurve
+    , dot
     , sector
     ) where
 
 import Prelude as Include hiding (
     drawingOf, animationOf
     , solidRectangle, solidCircle, solidPolygon, solidClosedCurve
+    , dot
     , sector
     )
 
@@ -38,8 +41,17 @@ import qualified "codeworld-api" CodeWorld as CWA
 import qualified Internal.CodeWorld as CWI
 import qualified Internal.Picture as P
 
+import Internal.Text
+import Extras.Cw(graphed)
+
 ------------------------------------------------------------------------------
 
+graphOf :: Picture -> Program
+graphOf(picture) = CWI.animationOf(movie)
+  where
+  movie(t) = graphed(picture,zoom,zoom)
+    where
+    zoom = 1 + t/600
 
 ------------------------------------------------------------------------------
 -- LSU Modifications
@@ -55,15 +67,24 @@ solidClosedCurve = P.closedCurve
 
 sector = P.arc
 
+dot(x,y) = P.combined([P.polyline(l1),P.polyline(l2)])
+    where
+    l1 = [(x-0.1,y+0.1),(x+0.1,y-0.1)]
+    l2 = [(x-0.1,y-0.1),(x+0.1,y+0.1)]
+
 -- | Show a coordinate plane along with the given Picture. This is intended
 -- for debugging purposes, so that you can place your objects more accurately.
 -- However, it should not be used for your final product. As a reminder,
--- your picture is shown all in black.
+-- your picture is shown as outlines.
+
 drawingOf :: Picture -> Program
+drawingOf = graphOf
+{-
 drawingOf pic = CWI.drawingOf(cfig & axes)
     where
     axes = P.coordinatePlane 
     cfig = colored(pic,RGBA(0.75,0,0,0.75))
+-}
 
 -- | Like 'drawingOf', this function is intended for debugging animations.
 animationOf :: (Number -> Picture) -> Program

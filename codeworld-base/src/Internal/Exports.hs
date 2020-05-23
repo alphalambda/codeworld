@@ -159,8 +159,8 @@ import Internal.Picture hiding (coordinatePlane)
 clap :: ( ((Picture,x) -> Picture), [x] ) -> Picture -> Picture
 clap(f,xs)(o) = combined([ f(o,x) | x <- xs ])
 
--- | 'dot(x,y)' is a Picture of a small dot centered at the Point (x,y).
-dot :: (Number,Number) -> Picture
+-- | @dot(x,y)@ is a 'Picture' of a small dot centered at the 'Point' @(x,y)@.
+dot :: Point -> Picture
 dot(p) = translated(centerDot,p)
 
 -- | A copy of the given @picture@ that is shown the given number of units

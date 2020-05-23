@@ -317,7 +317,12 @@ clipped :: HasCallStack => (Picture, Number, Number) -> Picture
 clipped (p, w, h) =
     withFrozenCallStack $ CWPic (CW.clipped (toDouble w) (toDouble h) (toCWPic p))
 
--- | A picture made by drawing this list of pictures, ordered from front to back.
+-- | A picture made by combining the given list of pictures, so that the
+-- elements of the list are laid out from front to back. In other words,
+-- the first element of the list will be shown over the rest, and the
+-- last element of the list will be shown under all the previous ones.
+-- If the elements overlap, different orderings of the list will
+-- produce different results when drawn.
 combined :: HasCallStack => [Picture] -> Picture
 combined ps = withFrozenCallStack $ CWPic (CW.pictures (map toCWPic ps))
 
