@@ -57,6 +57,7 @@ module Internal.Exports (
     , right
     , up
     , colored
+    , painted
     , scaled
     , dilated
     , rotated
@@ -65,15 +66,19 @@ module Internal.Exports (
     , clap
     -- * Colors
     , Color
+    , colorNamed
     , pattern RGBA
     , pattern RGB
     , pattern HSL
+    , rgb
+    , greyed
     , mixed
     , light
     , dark
     , bright
     , dull
     , translucent
+    , withAlpha
     , assortedColors
     , lighter
     , darker

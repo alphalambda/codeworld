@@ -27,15 +27,15 @@ import Internal.Text
 import "base" Prelude ((.), ($), map)
 
 -- | A point in two dimensions.  A point is written with the x coordinate
--- first, and the y coordinate second.  For example, (3, -2) is the point
--- with x coordinate 3 a y coordinate -2.
+-- first and the y coordinate second.  For example, (3, -2) is the point
+-- with x coordinate 3 and y coordinate -2.
 type Point = (Number, Number)
 
--- | The first coordinate of a Point, also known as the X coordinate
+-- | The first coordinate of a Point, also known as the X coordinate.
 xCoord :: Point -> Number
 xCoord(x,_) = x
 
--- | The second coordinate of a Point, also known as the Y coordinate
+-- | The second coordinate of a Point, also known as the Y coordinate.
 yCoord :: Point -> Number
 yCoord(_,y) = y
 
@@ -325,6 +325,12 @@ clipped (p, w, h) =
 -- produce different results when drawn.
 combined :: HasCallStack => [Picture] -> Picture
 combined ps = withFrozenCallStack $ CWPic (CW.pictures (map toCWPic ps))
+
+-- | The given picture painted with the color corresponding to the given
+-- color name, which must be a valid argument of the 'colorNamed' function.
+painted :: HasCallStack => (Picture,Text) -> Picture
+painted(pic,name) = 
+    withFrozenCallStack $ CWPic (CW.colored (toCWColor . colorNamed $ name) (toCWPic pic))
 
 -- | A binary operation that overlays one picture in from of the other.
 (&) :: HasCallStack => Picture -> Picture -> Picture

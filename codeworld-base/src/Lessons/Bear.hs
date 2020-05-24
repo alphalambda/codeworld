@@ -8,23 +8,11 @@
 -- | Auxiliary definitions to draw a teddy bear
 module Lessons.Bear(
     dashedCircle, solidDashedCircle, thickDashedCircle,
-    teddyBrown, pink, yellow, cyan, white
-    ) where
+    pink, yellow, cyan, white, teddyBrown
+) where
 
 import Prelude
 import Extras.Colors
-
-pink :: Color
-pink = colorNamed("pink")
-
-yellow :: Color
-yellow = colorNamed("yellow")
-
-cyan :: Color
-cyan = colorNamed("cyan")
-
-white :: Color
-white = colorNamed("white")
 
 teddyBrown :: Color
 teddyBrown = RGBA(0.75,0.50,0,1)
