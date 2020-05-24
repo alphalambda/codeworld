@@ -23,24 +23,28 @@
 -- in the "Standard" module for more information.
 module Standard.Debug (
       module Include
-    , drawingOf, animationOf, autoSlideshow, slideshow
+    , drawingOf, animationOf, slideshow
+{-
     -- * Redefined drawing primitives
     , solidRectangle, solidCircle, solidPolygon, solidClosedCurve
     , dot
     , sector
+-}
     ) where
 
 import Prelude as Include hiding (
     drawingOf, animationOf
+{-
     , solidRectangle, solidCircle, solidPolygon, solidClosedCurve
     , dot
     , sector
+-}
     )
 
 import qualified "codeworld-api" CodeWorld as CWA
 import qualified Internal.CodeWorld as CWI
 import qualified Internal.Picture as P
-
+import qualified Internal.Color as C
 import Internal.Text
 import Extras.Cw(graphed)
 
@@ -49,14 +53,16 @@ import Extras.Cw(graphed)
 graphOf :: Picture -> Program
 graphOf(picture) = CWI.animationOf(movie)
   where
-  movie(t) = graphed(picture,zoom,zoom)
+  movie(t) = graphed(washout,1,1)
     where
-    zoom = 1 + t/600
+    washout = P.combined([ P.colored(P.solidRectangle(20,20), C.RGBA(1,1,1,t/90))
+                         , picture ])
 
 ------------------------------------------------------------------------------
 -- LSU Modifications
 ------------------------------------------------------------------------------
 
+{-
 solidRectangle = P.rectangle
 
 solidCircle = P.circle
@@ -72,13 +78,15 @@ dot(x,y) = P.combined([P.polyline(l1),P.polyline(l2)])
     l1 = [(x-0.1,y+0.1),(x+0.1,y-0.1)]
     l2 = [(x-0.1,y-0.1),(x+0.1,y+0.1)]
 
+-}
+
 -- | Show a coordinate plane along with the given Picture. This is intended
 -- for debugging purposes, so that you can place your objects more accurately.
 -- However, it should not be used for your final product. As a reminder,
--- your picture is shown as outlines.
-
+-- your picture will fade after 90 seconds.
 drawingOf :: Picture -> Program
 drawingOf = graphOf
+
 {-
 drawingOf pic = CWI.drawingOf(cfig & axes)
     where
@@ -87,16 +95,23 @@ drawingOf pic = CWI.drawingOf(cfig & axes)
 -}
 
 -- | Like 'drawingOf', this function is intended for debugging animations.
-animationOf :: (Number -> Picture) -> Program
+-- So, it will not run your animation. Instead, it expects a particular
+-- timestamp, and it will show the state of your animation at that time.
+animationOf :: ((Number -> Picture),Number) -> Program
+animationOf(draw,instant) = drawingOf(draw(instant))
+
+{-
 animationOf draw = CWI.animationOf(draw')
     where
     draw'(t) = colored(draw(t),RGB(0.75,0,0.75)) & P.coordinatePlane
+-}
 
 -- | Debug an slide show. Unlike the normal @slideshow@, this function
--- automatically advances slides every 2 seconds.
-slideshow :: [Picture] -> Program
-slideshow(slides) = autoSlideshow(slides,2)
+-- needs the particular slide you want to show, starting at index 1.
+slideshow :: ([Picture],Number) -> Program
+slideshow(slides,slidenum) = drawingOf(slides#slidenum)
 
+{-
 -- | Debug an automatic slide show
 autoSlideshow :: ([Picture],Number) -> Program
 autoSlideshow(slides,period) = animationOf(sshow)
@@ -108,3 +123,4 @@ autoSlideshow(slides,period) = animationOf(sshow)
     where
     num = 1 + remainder(truncated(t/period), len)
 
+-}
