@@ -45,15 +45,19 @@ import qualified "codeworld-api" CodeWorld as CWA
 import qualified Internal.CodeWorld as CWI
 import qualified Internal.Picture as P
 import qualified Internal.Color as C
+import qualified Internal.Event as E
 import Internal.Text
 import Extras.Cw(graphed)
 
 ------------------------------------------------------------------------------
 
 graphOf :: Picture -> Program
-graphOf(picture) = CWI.animationOf(movie)
+graphOf(picture) = CWI.activityOf(initial,update,draw)
   where
-  movie(t) = graphed(washout,1,1)
+  initial(_) = 0
+  update(t,E.TimePassing(dt)) = t + dt
+  update(t,_) = t
+  draw(t) = graphed(washout,1,1)
     where
     washout = P.combined([ P.colored(P.solidRectangle(20,20), C.RGBA(1,1,1,t/90))
                          , picture ])
