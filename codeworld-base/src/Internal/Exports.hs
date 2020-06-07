@@ -116,8 +116,8 @@ module Internal.Exports (
     , iterated
     , map
     , filter
-    , plug1
-    , plug2
+    , fixed1
+    , fixed2
     -- * Parameters
     , newParams
     , get
@@ -214,11 +214,11 @@ centerDot = solidCircle(0.1)
 -- can be rewritten using the pipe as:
 -- 
 -- > program = drawingOf(rectangle(1,3) 
--- >                     |> plug2(translated,(2,5))
--- >                     |> plug2(rotated,45)
+-- >                     |> fixed2(translated,(2,5))
+-- >                     |> fixed2(rotated,45)
 -- >                     |> combined)
 --
--- The may need auxiliary functions, such as 'plug1' and 'plug2', to
+-- The may need auxiliary functions, such as 'fixed1' and 'fixed2', to
 -- specify which argument to pipe, as the example above illustrates.
 (|>) :: a -> (a -> b) -> b
 x |> f = f(x)
@@ -277,16 +277,16 @@ map :: (a -> b) -> [a] -> [b]
 map = P.map
 
 -- | Partially apply a function of two arguments to a given first
--- argument, leaving the second one free to be received via a pipeline.
+-- argument, keeping it fixed while leaving the second one free.
 --
-plug1 :: ((a,b) -> c, a) -> b -> c
-plug1(f,a)(b) = f(a,b)
+fixed1 :: ((a,b) -> c, a) -> b -> c
+fixed1(f,a)(b) = f(a,b)
 
 -- | Partially apply a function of two arguments to a given second
--- argument, leaving the first one free to be received via a pipeline.
+-- argument, keeping it fixed while leaving the first one free.
 --
-plug2 :: ((a,b) -> c, b) -> a -> c
-plug2(f,b)(a) = f(a,b)
+fixed2 :: ((a,b) -> c, b) -> a -> c
+fixed2(f,b)(a) = f(a,b)
 
 type Params = M.Map T.Text Number
 
