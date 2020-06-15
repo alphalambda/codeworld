@@ -53,7 +53,6 @@ module Internal.Exports (
     , Font(..)
     , TextStyle(..)
     -- * Operations on Pictures
-    , (&)
     , right
     , up
     , colored

@@ -216,14 +216,16 @@ randomSlideshow_(mkslides) = activityOf(initial,update,render)
                         }
     render(SS{..})
       | empty(slides) = combined([])
-      | otherwise     = showSlide & slides#current
+      | otherwise     = combined([ showSlide , slides#current ])
       where
       showSlide
           | time - tlast > 2 = blank
           | otherwise = translated(mark,(-9.5,-9.5))
           
-      mark = scaled(lettering(printed(current)),0.5,0.5)
-           & colored(solidRectangle(1,1),RGB(0.9,0.9,0.9))
+      mark = combined
+           [ scaled(lettering(printed(current)),0.5,0.5)
+           , colored(solidRectangle(1,1),RGB(0.9,0.9,0.9))
+           ]
     update(ss@SS{..}, event) = case event of
       TimePassing(dt)    -> ss { time = time + dt }
       KeyPress(kp)       -> handleKey(ss,kp)
@@ -466,7 +468,7 @@ grid(cell,rows,cols) = translated(combined(rpic),(-10,10))
 -- > 
 -- > program = animationOf(movie)
 -- > 
--- > movie(t) = sprite1(row,col) & background
+-- > movie(t) = combined([ sprite1(row,col) , background ])
 -- >   where
 -- >   -- Jump between rows 1 and 10 every 100 seconds
 -- >   row = 1 + truncated(10*saw(t,100))
@@ -476,12 +478,13 @@ grid(cell,rows,cols) = translated(combined(rpic),(-10,10))
 -- > sprite1 = sprite(pic,10,10)
 -- >   where
 -- >   pic = rotated(eks,45)
--- >   eks = solidRectangle(10,1) & solidRectangle(1,10)
+-- >   eks = combined([ solidRectangle(10,1) , solidRectangle(1,10) ])
 -- > 
 -- > background = grid(cell,10,10)
 -- >     where
--- >     cell(row,col) = dilated(lettering(printedPoint(row,col)),5)
--- >                   & rectangle(19,19)
+-- >     cell(row,col) = 
+-- >         combined([ dilated(lettering(printedPoint(row,col)),5),
+-- >                    rectangle(19,19) ])
 --
 sprite :: (Picture,Number,Number) -> (Number,Number) -> Picture
 sprite(pic,rows,cols) = transform
@@ -493,19 +496,20 @@ sprite(pic,rows,cols) = transform
   base = scaled(pic,1/cols,1/rows)
   transform(row,col) = translated(base,(w*col-dw,-h*row+dh))
 
--- | @overlays(fig,n)@ is a shortcut for @fig(1) & fig(2) & ... & fig(n)@
+-- | @overlays(fig,n)@ is a shortcut for @combined([fig(1),fig(2),...fig(n)])@
 overlays :: ((Number -> Picture),Number) -> Picture
 overlays(f,n) = overlays'(f,max(0,truncated(n)))
     where
     overlays'(f,0) = blank
-    overlays'(f,n) = overlays'(f,n-1) & f(n)
+    overlays'(f,n) = combined([ overlays'(f,n-1), f(n) ])
 
--- | @underlays(fig,n)@ is a shortcut for @fig(n) & fig(n-1) & ... & fig(1)@
+-- | @underlays(fig,n)@ is a shortcut for
+-- @combined([fig(n),fig(n-1),...fig(1)])@
 underlays :: ((Number -> Picture),Number) -> Picture
 underlays(f,n) = underlays'(f,max(0,truncated(n)))
     where
     underlays'(f,0) = blank
-    underlays'(f,n) = f(n) & underlays'(f,n-1)
+    underlays'(f,n) = combined([ f(n), underlays'(f,n-1) ])
 
 -- | A white frame around the standard 20x20 output window that covers
 -- anything that may spill over. The argument is the thickness of
@@ -548,8 +552,9 @@ squareFrame(border) = colored(thickRectangle(s,s,border),RGB(1,1,1))
 -- 'guiDrawingOf' from "Extras.Widget".
 --
 graphed :: (Picture,Number,Number) -> Picture
-graphed(pic,zoomx,zoomy) = graph(10/zoomx,10/zoomy,10,10)
-                         & scaled(pic,zoomx,zoomy)
+graphed(pic,zoomx,zoomy) =
+    combined([ graph(10/zoomx,10/zoomy,10,10),
+               scaled(pic,zoomx,zoomy) ])
 
 -- | This function is similar to 'graphed', but it creates a graph that is
 -- as wide as specified by the first parameter.
@@ -557,8 +562,9 @@ graphed(pic,zoomx,zoomy) = graph(10/zoomx,10/zoomy,10,10)
 -- units wide and @20@ units high.
 wideGraphed :: (Number,Picture,Number,Number) -> Picture
 wideGraphed(width,pic,zoomx,zoomy) =
-  graph(halfwidth/zoomx, 10/zoomy, halfwidth, 10)
-  & scaled(pic,zoomx,zoomy)
+  combined([ graph(halfwidth/zoomx, 10/zoomy, halfwidth, 10)
+           ,scaled(pic,zoomx,zoomy)
+           ])
   where
   halfwidth = width/2
 
@@ -569,32 +575,44 @@ wideGraphed(width,pic,zoomx,zoomy) =
 -- is @width@ units wide and @heighth@ units high.
 customGraphed :: (Number,Number,Picture,Number,Number) -> Picture
 customGraphed(width,height,pic,zoomx,zoomy) =
-  graph(halfwidth/zoomx, halfheight/zoomy, halfwidth, halfheight)
-  & scaled(pic,zoomx,zoomy)
+  combined([ graph(halfwidth/zoomx, halfheight/zoomy, halfwidth, halfheight)
+           , scaled(pic,zoomx,zoomy)
+           ])
   where
   halfwidth = width/2
   halfheight = height/2
 
-graph(maxX,maxY,width,height) = labels & axesX & rotated(axesY,90)
+graph(maxX,maxY,width,height) = 
+  combined([ labels, axesX, rotated(axesY,90) ])
   where
   (majorX,axesX) = axes(maxX,width,height)
   (majorY,axesY) = axes(maxY,height,width)
 
-  labels = combined(forloop(majorX,(<= maxX),(+ majorX),p))
-         & combined(forloop(majorY,(<= maxY),(+ majorY),q))
+  labels = 
+    combined([ combined(forloop(majorX,(<= maxX),(+ majorX),p))
+             , combined(forloop(majorY,(<= maxY),(+ majorY),q))
+             ])
 
-  p(x) | x < 1000000 = translated(lunj( x), ( pos,-1/2))
-                     & translated(lunj(-x), (-pos,-1/2))
-       | 3 <= pos && pos < 6 = translated(lunj( x), ( pos,-1/2))
-                             & translated(lunj(-x), (-pos,-1/2))
+  p(x) | x < 1000000 = 
+            combined([ translated(lunj( x), ( pos,-1/2))
+                     , translated(lunj(-x), (-pos,-1/2))
+                     ])
+       | 3 <= pos && pos < 6 = 
+            combined([ translated(lunj( x), ( pos,-1/2))
+                     , translated(lunj(-x), (-pos,-1/2))
+                     ])
        | otherwise = blank
        where
        pos = x * width / maxX
 
-  q(y) | y < 50000 = translated(ljust( y),(-1, pos))
-                   & translated(ljust(-y),(-1,-pos))
-       | 3 <= pos && pos < 6 = translated(lunj( y),(-1, pos))
-                             & translated(lunj(-y),(-1,-pos))
+  q(y) | y < 50000 =
+            combined([ translated(ljust( y),(-1, pos))
+                     , translated(ljust(-y),(-1,-pos))
+                     ])
+       | 3 <= pos && pos < 6 = 
+            combined([ translated(lunj( y),(-1, pos))
+                     , translated(lunj(-y),(-1,-pos))
+                     ])
        | otherwise = blank
        where
        pos = y * height / maxY
@@ -606,8 +624,10 @@ graph(maxX,maxY,width,height) = labels & axesX & rotated(axesY,90)
 
 axes(maxnum,width,height) = (major, allAxes)
   where
-  allAxes = semiMajor & scaled(semiMajor,-1,1)
-          & semiMinor & scaled(semiMinor,-1,1)
+  allAxes = combined([ semiMajor
+                     , scaled(semiMajor,-1,1)
+                     , semiMinor
+                     , scaled(semiMinor,-1,1) ])
 
   semiMajor = combined(forloop(0,(<= maxnum),(+ major),majorAxis))
   semiMinor = combined(forloop(0,(<= maxnum),(+ minor),minorAxis))
@@ -654,10 +674,13 @@ resolution(x) = if x >= 1 then goUp(1) else goDn(1,0)
 -- > program = drawingOf(picture)
 -- >   where
 -- >   w = 3
--- >   picture = tree(t1,draw,w) & translated(lettering(info),(5,-9))
+-- >   picture = combined([ tree(t1,draw,w)
+-- >                      , translated(lettering(info),(5,-9))
+-- >                      ])
 -- >     where
--- >     draw(node) = lettering(node) 
--- >                & colored(solidRectangle(0.8*w,1),translucent(light(red)))
+-- >     draw(node) = combined([ lettering(node)
+-- >                           , colored(solidRectangle(0.8*w,1),translucent(light(red)))
+-- >                           ])
 -- >     info = joined([ "width: ", printed(treeWidth(t1))
 -- >                   , ", depth: ", printed(treeDepth(t1))
 -- >                   ])
@@ -747,9 +770,11 @@ tree(tt,draw,size) = dilated(fulltree,20/sfactor)
   width = size * treeWidth(tt)
   fulltree = translated(tree'(tt,-width/2,width),(0,(depth-1)/2))
   depth = 2*treeDepth(tt)-1
-  tree'(Node(a,t),offset,alloc) = translated(draw(a),(anchor,0))
-                                & pointers
-                                & translated(nodes,(0,-2))
+  tree'(Node(a,t),offset,alloc) =
+    combined([ translated(draw(a),(anchor,0))
+             , pointers
+             , translated(nodes,(0,-2))
+             ])
     where
     pointers = if empty(t) then blank 
                            else polyline([(anchor,-0.5),(anchor,-1)])
@@ -761,9 +786,11 @@ tree(tt,draw,size) = dilated(fulltree,20/sfactor)
       next(ns,d,w) = (ns',d+w,if empty(ns') then 0 else size * treeWidth(ns'#1))
         where
         ns' = rest(ns,1)
-      output(ns,d,w) = tree'(ns#1,d,w)
-                      & polyline([(d+w/2,0.5),(d+w/2,1)])
-                      & polyline([(d+w/2,1),(offset+alloc/2,1)])
+      output(ns,d,w) =
+          combined([ tree'(ns#1,d,w)
+                   , polyline([(d+w/2,0.5),(d+w/2,1)])
+                   , polyline([(d+w/2,1),(offset+alloc/2,1)])
+                   ])
 
 interactionOf(initial,update,handle,draw) = activityOf(initial,next,draw)
     where

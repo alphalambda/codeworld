@@ -178,7 +178,9 @@ input (model,_) = model
 draw(Model{..})
   | numPegs > 18 = drawMany(Model{..})
   | numPegs > 6 = drawInfos(Model{..})
-  | otherwise = pegPics & translated(lettering(printed(total)),(-8,9))
+  | otherwise = combined([ pegPics 
+                         , translated(lettering(printed(total)),(-8,9))
+                         ])
   where
   pegPics = combined[translated(drawPeg i s numDiscs,(x,y))
                       | i <- [1..]
@@ -187,8 +189,10 @@ draw(Model{..})
                       , x <- [-5,0,5]
                       ]
 
-drawMany(Model{..}) = translated(lettering(printed(total)<>" moves"),(0,9.5))
-  & combined([bar(i,count(p)) | i <- [1..] | p <- pegs])
+drawMany(Model{..}) = combined(
+  [ translated(lettering(printed(total)<>" moves"),(0,9.5))
+  , combined([bar(i,count(p)) | i <- [1..] | p <- pegs])
+  ])
     where
     bar(i,n) = translated(solidRectangle(w,rh),((i-0.5)*w-10,rh/2-10))
         where
@@ -197,11 +201,13 @@ drawMany(Model{..}) = translated(lettering(printed(total)<>" moves"),(0,9.5))
     h = 18/numDiscs
 
 
-drawInfos(model) = resized(pageFromTexts(movesInfo : "" : numInfos),2)
-  & combined[translated(solidRectangle(w,1),(w/2,8.5-i))
+drawInfos(model) = combined(
+  [ resized(pageFromTexts(movesInfo : "" : numInfos),2)
+  , combined[translated(solidRectangle(w,1),(w/2,8.5-i))
             | i <- [1..]
             | s <- pegs(model), let w = 9*count(s)/numDiscs(model)
             ]
+  ])
   where
   cons(f,g)(x) = f(x) : g(x)
   movesInfo = joined([ "Num Moves: ", rJustified(printed(model.total),8) ])
@@ -211,22 +217,24 @@ drawInfos(model) = resized(pageFromTexts(movesInfo : "" : numInfos),2)
           slen = secondOfPair
 
 
-drawPeg n (num,discs) numDiscs =
-  combined[translated(disc i,(0,(0.5+num-pos-1)*height))
+drawPeg n (num,discs) numDiscs = combined(
+  [ combined[translated(disc i,(0,(0.5+num-pos-1)*height))
           | i <- discs
           | pos <- [0..]
           ]
-  & thickPolyline([(-2,-0.2),(2,-0.2)],0.2)
-  & thickPolyline([(0,-0.2),(0,totalheight)],0.2)
-  & translated(lettering("Peg " <> (printed n)),(0,-1))
-  & translated(dilated(lettering(printed(num)),0.75),(0,-1.9))
+  , thickPolyline([(-2,-0.2),(2,-0.2)],0.2)
+  , thickPolyline([(0,-0.2),(0,totalheight)],0.2)
+  , translated(lettering("Peg " <> (printed n)),(0,-1))
+  , translated(dilated(lettering(printed(num)),0.75),(0,-1.9))
+  ])
   where
   width = 3.5 / numDiscs
   height = totalheight/(numDiscs+1)
   totalheight = 7
-  disc i =
-    colored(solidRectangle(width*i,height),assortedColors#i)
-    & border
+  disc i = combined(
+    [ colored(solidRectangle(width*i,height),assortedColors#i)
+    , border
+    ])
     where
     border | numDiscs < 20 = thickRectangle(width*i,height,0.2)
            | otherwise = rectangle(width*i,height)

@@ -59,7 +59,8 @@ graphOf(picture) = CWI.activityOf(initial,update,draw)
   update(t,_) = t
   draw(t) = graphed(washout,1,1)
     where
-    washout = P.combined([ P.colored(P.solidRectangle(20,20), C.RGBA(1,1,1,t/90))
+    -- fade after 90 seconds
+    washout = P.combined([ P.colored(P.solidRectangle(20,20), C.RGBA(1,1,1,0.2 + 2*t/225))
                          , picture ])
 
 ------------------------------------------------------------------------------

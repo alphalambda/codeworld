@@ -19,8 +19,7 @@ teddyBrown = RGBA(0.75,0.50,0,1)
 
 solidDashedCircle :: (Number,Color) -> Picture
 solidDashedCircle(radius,color) =
- dashedCircle(radius)
- & colored(solidCircle(radius),color)
+ combined([ dashedCircle(radius), colored(solidCircle(radius),color) ])
 
 dashedCircle :: Number -> Picture
 dashedCircle(radius) = thickDashedCircle(radius,0)

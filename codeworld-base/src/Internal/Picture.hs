@@ -113,7 +113,7 @@ dotProduct (v, w) = fromDouble (CW.dotProduct (toCWVect v) (toCWVect w))
 -- | A type for pictures.
 --
 -- Pictures can be created from geometry functions such as 'circle'
--- and 'rectangle'.  They can be combined by overlaying them with '&'.
+-- and 'rectangle'.  They can be combined using the function `combined`.
 -- They can be modified using transformations like 'translated',
 -- 'rotated', 'dilated', 'colored', and 'scaled'.  Ultimately, a picture
 -- can be drawn on the screen using one of the CodeWorld entry points

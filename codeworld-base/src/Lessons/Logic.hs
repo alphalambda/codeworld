@@ -12,7 +12,7 @@ module Lessons.Logic(
     , drawingOf, lettering, printed
     , solidCircle, solidRectangle, solidPolygon
     , translated, rotated, dilated, scaled, colored
-    , (&), combined, blank
+    , combined, blank
     , (<>)
     , Number
     ) where

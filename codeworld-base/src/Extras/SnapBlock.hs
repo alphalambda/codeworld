@@ -20,10 +20,9 @@ snapBlock :: [Point] -> SnapBlock
 snapBlock = SnapBlock
 
 blocks :: ([SnapBlock],Color,Color) -> Picture
-blocks(bs,outer,inner) = 
-  combined([outlineBlock(b,outer) & solidBlock(b,inner)
-           | b <- bs
-           ])
+blocks(bs,outer,inner) = combined(pairs)
+  where
+  pairs = [combined([outlineBlock(b,outer),solidBlock(b,inner)]) | b <- bs ]
 
 solidBlock :: (SnapBlock,Color) -> Picture
 solidBlock(SnapBlock(pts),color) = colored(solidPolygon(pts),color)
@@ -32,7 +31,7 @@ outlineBlock :: (SnapBlock,Color) -> Picture
 outlineBlock(SnapBlock(pts),color) = colored(polygon(pts),color)
 
 labels :: (SnapBlock,[Number]) -> Picture
-labels(SnapBlock(pts),offs) = solidCircle(0.1) & combined(ls)
+labels(SnapBlock(pts),offs) = combined([ solidCircle(0.1), combined(ls) ])
   where
   ls = [translated(lbl(i),(x,y+0.5*o))
        | (x,y) <- pts

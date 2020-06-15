@@ -200,12 +200,12 @@ track(cmd) = cmd.$tracks.$concatenated
 --
 -- Example:
 --
--- > program = drawingOf(combined(fig) & solidRectangle(20,20))
+-- > program = drawingOf(combined([fig, solidRectangle(20,20)]))
 -- >   where
--- >   fig = [ colored(thickPolyline(t,0.03),c)
--- >         | t <- tracks(turtleProgram)
--- >         | c <- repeating([red, purple, blue, green, orange, yellow])
--- >         ]
+-- >   fig = combined([ colored(thickPolyline(t,0.03),c)
+-- >                  | t <- tracks(turtleProgram)
+-- >                  | c <- repeating([red, purple, blue, green, orange, yellow])
+-- >                  ])
 -- > 
 -- >   turtleProgram = run(foreach([1..360], singleLine))
 -- > 
@@ -289,7 +289,9 @@ partialTracks(turtleProg) = foreach([2..sum(lengths)],partial)
 -- >   where
 -- >   draw(random) = colored(sun,yellow)
 -- >     where
--- >     sun = solidCircle(2) & polylines(randomTracks(random,turtleProgram))
+-- >     sun = combined([ solidCircle(2) 
+-- >                    , polylines(randomTracks(random,turtleProgram))
+-- >                    ])
 -- >   turtleProgram = repeat(500, [ pu, home, randomized(seth,360), fd(2)
 -- >                               , pd, randomized(fd,4)
 -- >                               ])
@@ -321,8 +323,10 @@ trackLength(points) = sum(foreach(trackInfo(points),len))
 --
 -- > program = animationOf(movie)
 -- >   where
--- >   movie(t) = placedAlong(turtleShape,travel(remainder(4*t,tlen))) 
--- >            & polyline(turtleTrack)
+-- >   movie(t) =
+-- >       combined([ placedAlong(turtleShape,travel(remainder(4*t,tlen))) 
+-- >                , polyline(turtleTrack)
+-- >                ])
 -- > 
 -- >   placedAlong(pic,((x,y),a)) = translated(rotated(turtleShape,a),(x,y))
 -- >   travel = alongTrack(turtleTrack)
@@ -577,7 +581,8 @@ saveTrace(turtle) = case turtle.$trace of
 -------------------------------------------------------------------------------
 
 {-
-turtleExample1 = (stars.$run.$tracks.$polylines & anchors.$polyline).$drawingOf
+turtleExample1 = 
+    combined([stars.$run.$tracks.$polylines,anchors.$polyline]).$drawingOf
   where
   noStar(l) = run([pu,star(l),pd])
   star(l) = run([repeat(8,[fd(l/30),rt(135)]),pu,fd(3*l/30),rt(57),pd])
@@ -733,10 +738,11 @@ turtleExamples :: Program
 turtleExamples =
   (slides.#make ++ [bullring.$run.$tracks.$dottylines]).$slideshow
   where
-  make(i,l,s) = blank
-    & translated(lettering(i <> ": " <> l),(0,9.5) )
-    & translated(colored(solidRectangle(10,1.2),RGB(1,1,1)),(0,9.5))
-    & s.$run.$tracks.$polylines
+  make(i,l,s) = combined(
+    [ translated(lettering(i <> ": " <> l),(0,9.5) )
+    , translated(colored(solidRectangle(10,1.2),RGB(1,1,1)),(0,9.5))
+    , s.$run.$tracks.$polylines
+    ])
 
   slides =
     [ ("recursive", "figs(14, poly(7,2))",figs(14, poly(7,2)))

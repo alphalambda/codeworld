@@ -148,7 +148,7 @@ sequential (s1:s2:ss) = sequential ((sequentially s1 s2):ss)
 simultaneously :: Script -> Script -> Script
 simultaneously (p1,move1) (p2,move2) = (max(p1,p2),move)
   where
-  move t = move1 t & move2 t
+  move t = combined [move1 t , move2 t ]
 
 -- |Scripts that run at the same time
 simultaneous :: [Script] -> Script

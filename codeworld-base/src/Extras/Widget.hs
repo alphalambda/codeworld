@@ -56,10 +56,11 @@ import Prelude
 -- >   flipflop(v) = truncated(1 + 2 * v)
 -- >   radiusrange(v) = 0.2 + 0.8 * v
 -- > 
--- > draw(values) = blank
--- >   & [blank, circle(r)]#s
--- >   & colored(solidRectangle(w,h),[RGB(1,0,0),RGB(0,1,0)]#c)
+-- > draw(values) =
+-- >   combined([ circle(r)]#s,
+-- >              colored(solidRectangle(w,h), colors#c) ])
 -- >   where
+-- >   colors = [RGB(1,0,0),RGB(0,1,0)]
 -- >   w = values#1
 -- >   h = values#2
 -- >   s = values#3
@@ -76,7 +77,7 @@ guiDrawingOf(widgetsUser,drawUser) = activityOf(initAll,updateAll,drawAll)
 
   updateAll(ws,event) = ws.$updateWidget(event).#react
 
-  drawAll(ws) = combined(ws.$drawWidget) & drawUser(ws.$value)
+  drawAll(ws) = combined(ws.$drawWidget ++ [drawUser(ws.$value)])
 
 -- | The function @guiActivityOf@ is similar to @activityOf@, but it also
 -- takes in a list of widgets. The updating and drawing functions also
@@ -94,9 +95,10 @@ guiDrawingOf(widgetsUser,drawUser) = activityOf(initAll,updateAll,drawAll)
 -- >             , randomBox("new color",-7,-1)
 -- >             ]
 -- > 
--- > draw(values,(color@(RGB(r1,r2,r3)),angle,_)) = colored(base,color)
--- >     & [blank, circle(5)]#s
--- >     & translated(lettering(msg),(0,9))
+-- > draw(values,(color@(RGB(r1,r2,r3)),angle,_)) =
+-- >     combined([ colored(base,color),
+-- >                [blank, circle(5)]#s,
+-- >                up(lettering(msg),9) ])
 -- >     where
 -- >     msg = joined(["(",printed(r1),",",printed(r2),",",printed(r3),")"])
 -- >     base = rotated(solidRectangle(w,h),angle)
@@ -135,7 +137,7 @@ guiActivityOf(widgetsUser,initUser,updateUser,drawUser) =
     newWidgets = widgets.$updateWidget(event).#react
     
   drawAll(widgets,state) =
-    combined(widgets.$drawWidget) & drawUser(widgets.$value,state)
+    combined([ combined(widgets.$drawWidget), drawUser(widgets.$value,state) ])
 
 -------------------------------------------------------------------------------
 -- Widget API
@@ -313,9 +315,9 @@ widgetExample1 = guiDrawingOf(widgets,draw)
   flipflop(v) = truncated(1 + 2 * v)
   radiusrange(v) = 0.2 + 0.8 * v
 
-  draw(values) = blank
-    & [blank, circle(r)]#s
-    & colored(solidRectangle(w,h),[RGB(1,0,0),RGB(0,1,0)]#c)
+  draw(values) =
+    combined([ [blank, circle(r)]#s,
+               colored(solidRectangle(w,h),[RGB(1,0,0),RGB(0,1,0)]#c) ])
     where
     w = values#1
     h = values#2
@@ -335,9 +337,10 @@ widgetExample2 = guiActivityOf(widgets,init,update,draw)
             , randomBox("new color",-7,-1)
             ]
 
-  draw(values,(color@(RGB(r1,r2,r3)),angle,_)) = colored(base,color)
-    & [blank, circle(5)]#s
-    & translated(lettering(msg),(0,9))
+  draw(values,(color@(RGB(r1,r2,r3)),angle,_)) =
+    combined([ colored(base,color),
+               [blank, circle(5)]#s,
+               translated(lettering(msg),(0,9)) ])
     where
     msg = joined(["(",printed(r1),",",printed(r2),",",printed(r3),")"])
     base = rotated(solidRectangle(w,h),angle)
@@ -386,11 +389,11 @@ widgetExample4 = guiDrawingOf(widgets,draw)
     translated(scaled(branch(depth,decay,stem,angle), 2*decay, 2*decay),(0,-5))
 
   branch(0, _, _, _) = polyline[(0,0), (0,5)]
-  branch(depth, decay, stem, angle) = blank
-    & polyline[(0,0), (0, 5)]
-    & translated(smallBranch, (0, 5))
-    & translated(rotated(smallBranch,  angle), (0, stem * 5))
-    & translated(rotated(smallBranch, -angle), (0, stem * 5))
+  branch(depth, decay, stem, angle) =
+    combined([ polyline[(0,0), (0, 5)],
+               translated(smallBranch, (0, 5)),
+               translated(rotated(smallBranch,  angle), (0, stem * 5)),
+               translated(rotated(smallBranch, -angle), (0, stem * 5)) ])
     where
     smallBranch = scaled(branch(depth-1, decay, stem, angle), 1-decay, 1-decay)
 
@@ -518,7 +521,8 @@ drawWidget(w) = case w.#widget of
   Counter -> drawCounter(w)
   Timer  -> drawTimer(w)
   
-drawButton(Widget{..}) = drawLabel & drawSelection & drawHighlight
+drawButton(Widget{..}) = 
+  combined([ drawLabel, drawSelection, drawHighlight ])
   where
   solid = scaled(solidCircle(0.5),w,h)
   outline = scaled(circle(0.5),w,h)
@@ -534,7 +538,7 @@ drawButton(Widget{..}) = drawLabel & drawSelection & drawHighlight
     | highlight = translated(colored(rectangle(width,height),light(cgrey)),(x,y))
     | otherwise = blank
 
-drawCounter(Widget{..}) = drawLabel & drawSelection
+drawCounter(Widget{..}) = combined([ drawLabel, drawSelection ])
   where
   solid = scaled(solidPolygon(points),w,h)
   outline = scaled(polygon(points),w,h)
@@ -551,7 +555,7 @@ drawCounter(Widget{..}) = drawLabel & drawSelection
     | highlight = translated(colored(outline,cblack),(x,y))
     | otherwise = translated(colored(outline,cgrey),(x,y))
 
-drawToggle(Widget{..}) = drawSelection & drawLabel & drawHighlight
+drawToggle(Widget{..}) = combined([ drawSelection, drawLabel, drawHighlight ])
   where
   w = 0.5
   h = 0.5
@@ -561,14 +565,16 @@ drawToggle(Widget{..}) = drawSelection & drawLabel & drawHighlight
     | otherwise = translated(rectangle(0.9*w,0.9*h),(x',y))
   drawLabel = translated(msg,(x - width/10,y))
   drawHighlight
-    | highlight = colored(outline,light(cgrey))
-                & translated(rectangle(w,h),(x',y))
+    | highlight = 
+        combined([ colored(outline,light(cgrey)),
+                   translated(rectangle(w,h),(x',y)) ])
     | otherwise = colored(outline,light(light(cgrey)))
   outline = translated(rectangle(width,height),(x,y))
   (x,y) = centerAt
   msg = dilated(lettering(label),0.5)
   
-drawTimer(Widget{..}) = drawLabel & drawSelection & drawReset & drawHighlight
+drawTimer(Widget{..}) =
+  combined([ drawLabel, drawSelection, drawReset, drawHighlight ])
   where
   x' = x + 2/5*width
   xmin = x - width/2
@@ -580,19 +586,20 @@ drawTimer(Widget{..}) = drawLabel & drawSelection & drawReset & drawHighlight
     | otherwise = translated(rectangle(0.45,0.45),(x',y))
   drawReset = translated(box(0.3,height), (xmin+0.15, y))
   drawHighlight
-    | highlight = outline
-                & translated(rectangle(0.5,0.5),(x',y))
+    | highlight = combined([ outline, translated(rectangle(0.5,0.5),(x',y)) ])
     | otherwise = colored(outline,light(cgrey))
   outline = translated(rectangle(width,height),(x,y))
   (x,y) = centerAt
   msg(txt) = translated(dilated(lettering(txt),0.5), (x-width/10, y))
   box(w,h) = colored(solidRectangle(w,h),cgrey)
   
-drawSlider(Widget{..}) = info & foreground & background
+drawSlider(Widget{..}) = combined([ info, foreground, background ])
   where
   info = translated(infoMsg,(x,y-height/4))
-  foreground = translated(solidCircle(height/4),(x',y'))
-             & translated(colored(solidRectangle(width,height/4),cgrey),(x,y'))
+  foreground = 
+    combined([ translated(solidCircle(height/4),(x',y')),
+               translated(colored(rect,cgrey),(x,y')) ])
+  rect = solidRectangle(width,height/4)
   x' = x - width/2 + fenced(value_,0,1) * width
   y' = y + height/4
   background
@@ -601,7 +608,7 @@ drawSlider(Widget{..}) = info & foreground & background
   (x,y) = centerAt
   infoMsg = dilated(lettering(label<>": "<>printed(value_.#conversion)),0.5)
   
-drawRandom(Widget{..}) = drawLabel & drawSelection & drawHighlight
+drawRandom(Widget{..}) = combined([ drawLabel, drawSelection, drawHighlight ])
   where
   solid = scaled(solidRectangle(1,1),width,height)
   outline = scaled(rectangle(1,1),width,height)

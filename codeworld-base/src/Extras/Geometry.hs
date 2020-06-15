@@ -46,7 +46,7 @@ eks_pt = combined [ lline, rline ]
     lline = polyline [(-dot_radius,-dot_radius),(dot_radius,dot_radius)]
     rline = polyline [(dot_radius,-dot_radius),(-dot_radius,dot_radius)]
 
-star_pt = plus_pt & eks_pt
+star_pt = combined [plus_pt, eks_pt]
 
 dot_pt =  solidCircle(dot_radius)
 
@@ -61,7 +61,7 @@ drawCircle (o,p) = translated(circle(r),(x,y))
 
 drawPointsLabels pts lbl = combined[draw pl | pl <- zip pts lbl]
     where
-    draw (p,l) = drawPoint p & label(l,p)
+    draw (p,l) = combined [drawPoint p , label(l,p) ]
 
 drawLineWith liner (p,q)
     | apart p q = liner full_line

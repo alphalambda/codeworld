@@ -19,7 +19,6 @@ Library
   Hs-source-dirs:      src
   Js-sources:          jsbits/deep_eq.js
   Exposed-modules:     Core,
-                       Parameter,
                        Image,
                        Sketches,
                        -- LSU
@@ -30,7 +29,6 @@ Library
                        Lessons.Penguin,
                        Lessons.Operators,
                        Extras.SimUL1,
-                       Extras.Lessons,
                        Extras.Animation,
                        Extras.Game,
                        Extras.Geometry,

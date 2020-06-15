@@ -223,14 +223,15 @@ make_sim(simrow,x_min,x_max,landmarks,parts) =
       let
         origin = screen_coords(x_min)
         destin = screen_coords(x_max)
-        simline = polyline [(-10,0),(10,0)]
-                & combined[render_mark(m) | m <- [0..parts]]
+        simline = combined([ polyline [(-10,0),(10,0)],
+                             combined[render_mark(m) | m <- [0..parts]] ])
+        infoTexts =
+            [translated(minitext(lname,0.5),(screen_coords(lpos),simrow-0.5))
+            | (lname,lpos) <- landmarks
+            ]
       in
-        blank
-        & colored(translated(simline,(0,simrow)),cgreen)
-        & combined[translated(minitext(lname,0.5),(screen_coords(lpos),simrow-0.5))
-                  | (lname,lpos) <- landmarks
-                  ]
+        combined([ colored(translated(simline,(0,simrow)),cgreen),
+                   combined(infoTexts) ])
         
     render_shape(position,velo,shape) =
         translated(shape',(xpos,simrow))
@@ -287,14 +288,15 @@ make_chart(ct,cx,ylabel,t_max,x_min,x_max) =
     render_frame =
       let
         labelpos = 0.55 * chart_size
-        chart =
-            rectangle(chart_size,chart_size)
-            & translated(minilabel(0,0.4),(-halfsize+0.2,-halfsize-0.2))
-            & translated(minilabel(t_max,0.4),(halfsize-0.2,-halfsize-0.2))
-            & translated(minilabel(x_min,0.4),(-halfsize-0.5,-halfsize+0.2))
-            & translated(minilabel(x_max,0.4),(-halfsize-0.5,halfsize-0.2))
-            & translated(scaled(text("time"),0.8,0.8),(0,-labelpos))
-            & translated(rotated(scaled(text(ylabel),0.8,0.8),90),(-labelpos,0))
+        chart = combined(
+          [ rectangle(chart_size,chart_size),
+            translated(minilabel(0,0.4),(-halfsize+0.2,-halfsize-0.2)),
+            translated(minilabel(t_max,0.4),(halfsize-0.2,-halfsize-0.2)),
+            translated(minilabel(x_min,0.4),(-halfsize-0.5,-halfsize+0.2)),
+            translated(minilabel(x_max,0.4),(-halfsize-0.5,halfsize-0.2)),
+            translated(scaled(text("time"),0.8,0.8),(0,-labelpos)),
+            translated(rotated(scaled(text(ylabel),0.8,0.8),90),(-labelpos,0))
+          ])
       in
         colored(translated(chart,(ct,cx)),cblack)
 
@@ -314,12 +316,12 @@ make_chart(ct,cx,ylabel,t_max,x_min,x_max) =
 -------------------------------------------------------------------------------
 
 render(model) =
-    blank
-    & render_info(time(model),click(model),nstates)
-    & combined [render_state(i,s) | s <- states model | i <- [0..nstates-1]]
-    & render_line sim'
-    & render_frame pchart'
-    & render_frame vchart'
+    combined([ render_info(time(model),click(model),nstates),
+               combined [render_state(i,s) 
+                        | s <- states model | i <- [0..nstates-1]],
+               render_line sim',
+               render_frame pchart',
+               render_frame vchart' ])
     where
     nstates = length(states(model))
     sim' = sim model
@@ -331,34 +333,34 @@ render(model) =
                 render_strobe(sim')(strobe(state),color(state))
         | otherwise = blank
 
-    render_state(number,state) = blank
-        & render_shape(sim')(position(state),velocity(state),shape(state))
-        & may_render_strobe(state,number)
-        & render_graph(pchart') (pgraph(state),color(state))
-        & render_graph(vchart') (vgraph(state),color(state))
-        & colored(render_data(name(state),
+    render_state(number,state) = combined(
+        [ render_shape(sim')(position(state),velocity(state),shape(state))
+        , may_render_strobe(state,number)
+        , render_graph(pchart') (pgraph(state),color(state))
+        , render_graph(vchart') (vgraph(state),color(state))
+        , colored(render_data(name(state),
                               position(state),
                               velocity(state),
                               number),
                   color(state))
-
+        ])
 
 -------------------------------------------------------------------------------
 --- Code for creating and displaying the panels
 -------------------------------------------------------------------------------
 
-render_info(time,click,nstates) =
-    blank
+render_info(time,click,nstates) = combined
     -- time box
-    & translated(text("time"),(-8,9))
-    & translated(text(approximate(time)),(-8,8))
-    & translated(rectangle(2,2),(-8,8.5))
+    [ translated(text("time"),(-8,9))
+    , translated(text(approximate(time)),(-8,8))
+    , translated(rectangle(2,2),(-8,8.5))
     -- click box
-    & render_click(click)
+    , render_click(click)
     -- data box
-    & translated(scaled(text("position"),0.6,0.6),(-0.5,9))
-    & translated(scaled(text("velocity"),0.6,0.6),(2,9))
-    & translated(rectangle(10,1+nstates),(-1,9-0.5*nstates))
+    , translated(scaled(text("position"),0.6,0.6),(-0.5,9))
+    , translated(scaled(text("velocity"),0.6,0.6),(2,9))
+    , translated(rectangle(10,1+nstates),(-1,9-0.5*nstates))
+    ]
 
 render_click(Nothing)= blank
 
@@ -366,15 +368,17 @@ render_click(Just (x,y)) =
   let
     txt = "(" <> approximate(x) <> "," <> approximate(y) <> ")"
   in
-    translated(text("click"),(7,9))
-    & translated(text(txt),(7,8))
-    & translated(rectangle(4.5,2),(7,8.5))
+    combined
+      [ translated(text("click"),(7,9))
+      , translated(text(txt),(7,8))
+      , translated(rectangle(4.5,2),(7,8.5))
+      ]
 
-render_data(name,position,velocity,row) = blank
-    & translated(text(name),(-4,8-row))
-    & translated(text(approximate(position)),(-0.5,8-row))
-    & translated(text(approximate(velocity)),(2,8-row))
-
+render_data(name,position,velocity,row) = combined
+    [ translated(text(name),(-4,8-row))
+    , translated(text(approximate(position)),(-0.5,8-row))
+    , translated(text(approximate(velocity)),(2,8-row))
+    ]
 
 -------------------------------------------------------------------------------
 --- Code for user interaction
