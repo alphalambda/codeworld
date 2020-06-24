@@ -188,9 +188,9 @@ randomBox :: (Text,Number,Number) -> Widget
 randomBox(p) = (newWidget(p)) { widget = Random }
 
 -- | A button that keeps incrementing the value each time you press it.
--- The initial value is 1.
+-- The initial value is 0.
 counter :: (Text,Number,Number) -> Widget
-counter(p) = (newWidget(p)) { widget = Counter, value_ = 1 }
+counter(p) = (newWidget(p)) { widget = Counter, value_ = 0 }
 
 -- | A toggle that counts time up when you set it. When you click on
 -- the left side of the widget, the current value is reset to 0.
