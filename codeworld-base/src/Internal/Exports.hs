@@ -117,6 +117,7 @@ module Internal.Exports (
     , filter
     , fixed1
     , fixed2
+    , on
     -- * Parameters
     , newParams
     , get
@@ -286,6 +287,12 @@ fixed1(f,a)(b) = f(a,b)
 --
 fixed2 :: ((a,b) -> c, b) -> a -> c
 fixed2(f,b)(a) = f(a,b)
+
+-- | Select the second argument when the first argument is True,
+-- and select the third argument when the first argument is False
+on :: (Truth,value,value) -> value
+on(True,accept,_) = accept
+on(False,_,reject) = reject
 
 type Params = M.Map T.Text Number
 
