@@ -10,10 +10,10 @@ module Lessons.Logic(
     (+),(-),(*),(/),(==), max, negate
     , fromInteger, fromRational, fromString
     , drawingOf, lettering, printed
-    , solidCircle, solidRectangle, solidPolygon
+    , solidCircle, solidRectangle, solidPolygon, up
     , translated, rotated, dilated, scaled, colored
-    , combined, blank
-    , (<>)
+    , combined, blank, joined
+    , error
     , Number
     ) where
 

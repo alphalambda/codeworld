@@ -289,5 +289,11 @@ shuffled :: ([a], Number) -> [a]
 shuffled ([], r) = []
 shuffled (xs, r) = shuffle' xs (P.length xs) (numToStdGen r)
 
+-- | A random number generator. The `Number` passed as input is known as
+-- the seed, and it is used to generate a fresh new list of random numbers,
+-- so that different seeds will generate different random numbers.
+-- The numbers generated are not really random, but pseudorandom, which means
+-- they are good enough to appear random to a human, but they will fail
+-- statistical tests for real randomness.
 randomNumbers :: Number -> [Number]
 randomNumbers = randomsFrom . numToStdGen
