@@ -46,6 +46,12 @@ infixl 3 <&>
 
 infixl 9 .>
 
+-- | Function composition, where data flows from right to left
+(.<) :: (b -> c) -> (a -> b) -> (a -> c)
+(f .< g)(x) = f(g(x))
+
+infixr 9 .<
+
 -- | Simulates object notation by allowing you to write @x.$method@ instead
 -- of @method(x)@
 (.$) :: a -> (a -> b) -> b
@@ -70,5 +76,11 @@ infixl 8 .?
 ($>) :: a -> (a -> b) -> b
 l $> f = f l
 
-infixl 1 $>
+infixl 2 $>
 
+-- | Operator notation to create a pair, so that
+-- @a =: b@ is @(a,b)@
+(=:) :: a -> b -> (a,b)
+a =: b = (a,b)
+
+infixl 2 =:

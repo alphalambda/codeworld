@@ -26,8 +26,6 @@ import Prelude
 -- Animations
 ------------------
 
-type Animation = Number -> Picture
-
 type Duration = Number
 
 versionMajor = 0

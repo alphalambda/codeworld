@@ -27,7 +27,10 @@
 module Extras.Util(
     -- * Predicates
     Predicate, precedes, is_in, nonEmpty
+    , between, above, below, exactly
+    , all_, any_, excluded
     , selected, selectedValues, selectedKeys
+    , choice, choices
     -- * Grouping and Sorting lists
     , logicalGroupBy, alphabeticalGroupBy, numericalGroupBy
     , alphabeticalSortedOn, numericalSortedOn
@@ -61,6 +64,75 @@ import           "base" Prelude ((.),($),fst,snd)
 -- for which the predicate is @False@ when it is applied to them.
 type Predicate t = t -> Truth
 
+-- | A list of values selected from the given list. A value
+-- is selected if it satisfies the given predicate. Otherwise, it is discarded.
+selected :: ([value], Predicate value) -> [value]
+selected(ls,f) = P.filter f ls
+
+-- | A list of values selected form the given key-value list. A value
+-- is selected if the corresponding key satisfies the given predicate.
+-- This function is useful in lookup tables.
+selectedValues :: ([(key,value)], Predicate key) -> [value]
+selectedValues(kvList, pred) = P.map snd . P.filter (pred.fst) $ kvList
+
+-- | A list of keys selected form the given key-value list. A key
+-- is selected if the corresponding value satisfies the given predicate.
+-- This function is useful to do /reverse lookups/ in tables.
+selectedKeys :: ([(key,value)], Predicate value) -> [key]
+selectedKeys(kvList, pred) = P.map fst . P.filter (pred.snd) $ kvList
+
+-- | A predicate that holds whenever all the given predicates
+-- hold.
+-- The trailing underscore in the function name is included
+-- to distinguish it from the predicate named 'all'
+-- in the "Standard" library.
+all_ :: [Predicate value] -> Predicate value
+all_(preds)(v) = all(distributed(test,preds))
+  where
+  test(pred) = pred(v)
+
+-- | A predicate that holds whenever at least one of the given
+-- predicates holds.
+-- The trailing underscore in the function name is included
+-- to distinguish it from the predicate named 'any'
+-- in the "Standard" library.
+any_ :: [Predicate value] -> Predicate value
+any_(preds)(v) = any(distributed(test,preds))
+  where
+  test(pred) = pred(v)
+
+-- | @choices(options)@ converts a given input into
+-- a list of outputs according to the rules given.
+-- Each rule has a predicate and an output value.
+-- If the input satisfies a predicate, the corresponding
+-- output value is included in the result.
+--
+-- Example:
+--
+-- > test = choices([ (above(100),"You have fever")
+-- >                , (beween(97,100), "Your temperature is normal")
+-- >                , (below(97), "You have hypothermia")
+-- >                , (between(96,110), "You are alive")
+-- >                ])
+-- > 
+-- > message = test(102) -- ["You have fever", "You are alive"]
+-- >
+--
+choices :: [(Predicate inv, outv)] -> inv -> [outv]
+choices(options)(v) = selectedValues(options,pred)
+  where
+  pred(test) = test(v)
+
+-- | @choice(rules,default)@ is similar to 'choices', but
+-- it produces just the first result that matches the rules.
+-- If no rule matches, then the result is the given default.
+choice :: ([(Predicate inv, outv)], outv) -> inv -> outv
+choice(opts,def)(v) = case choices(opts)(v) of
+                       [] -> def
+                       other -> other#1
+
+-- Specific Predicates
+
 -- | @precedes(text1,text2)@ is @True@ whenever @text1@ precedes @text2@
 -- alphabetically. It is @False@ otherwise.
 -- When the two texts are the same,
@@ -82,22 +154,42 @@ is_in(list)(x) = contains(list,x)
 nonEmpty :: Predicate [value]
 nonEmpty = not.empty
 
--- | A list of values selected from the given list. A value
--- is selected if it satisfies the given predicate. Otherwise, it is discarded.
-selected :: ([value], Predicate value) -> [value]
-selected(ls,f) = P.filter f ls
+-- | A predicate that is @True@ when the argument is between
+-- the first parameter (included) and the second parameter (excluded).
+-- In other words, @between(a,b)(value)@ holds whenever
+-- @a <= value@ and @value < b@
+between :: (Number,Number) -> Predicate Number
+between(a,b)(v) = a <= v && v < b
 
--- | A list of values selected form the given key-value list. A value
--- is selected if the corresponding key satisfies the given predicate.
--- This function is useful in lookup tables.
-selectedValues :: ([(key,value)], Predicate key) -> [value]
-selectedValues(kvList, pred) = P.map snd . P.filter (pred.fst) $ kvList
+-- | A predicate that is @True@ when the argument is above
+-- the given parameter (included).
+-- In other words, @above(b)(value)@ holds whenever
+-- @b <= value@
+above :: Number -> Predicate Number
+above(b)(v) = b <= v
 
--- | A list of keys selected form the given key-value list. A key
--- is selected if the corresponding value satisfies the given predicate.
--- This function is useful to do /reverse lookups/ in tables.
-selectedKeys :: ([(key,value)], Predicate value) -> [key]
-selectedKeys(kvList, pred) = P.map fst . P.filter (pred.snd) $ kvList
+-- | A predicate that is @True@ when the argument is below
+-- the given parameter (excluded).
+-- In other words, @below(a)(value)@ holds whenever
+-- @value < a@
+below :: Number -> Predicate Number
+below(a)(v) = v < a
+
+-- | A predicate that is @True@ when the argument is equal to
+-- the given parameter.
+-- In other words, @exactly(a)(value)@ holds whenever
+-- @value == a@
+exactly :: value -> Predicate value
+exactly(a)(v) = a == v
+
+-- | A predicate that is @True@ whenever the given predicate
+-- is @False@.
+-- In other words, @excluded(pred)(value)@ holds whenever
+-- @pred(value)@ does not hold.
+excluded :: Predicate value -> Predicate value
+excluded(pred)(v) = not(pred(v))
+
+
 
 -------------------------------------------------------------------------------
 -- Grouping and Sorting

@@ -32,22 +32,21 @@
 -- 
 
 module Extras.Cw(
-    -- * Animation convenience functions
-    between, beyond, saw
+    -- * New entry points
+    slideshow, autoSlideshow, pagesOf, customPagesOf
+    -- * Entry points with randomization
+    -- $randomIntro
+    , randomDrawingOf, randomAnimationOf, randomSlideshow, randomAutoSlideshow
     -- * Functions for accessing the points in a curve
     , openCurvePoints, closedCurvePoints
     -- * Layout
-    , pageFromTexts, grid, sprite, overlays, underlays
+    , fittedPageFromTexts
+    , grid, sprite, overlays, underlays
     , squareFrame
     -- * Graphing
     , graphed, wideGraphed, customGraphed
     -- * Drawing Trees
     , Tree, (-<), treeDepth, treeWidth, tree
-    -- * New entry points
-    , slideshow, autoSlideshow, paginationOf, showPages
-    -- * Entry points with randomization
-    -- $randomIntro
-    , randomDrawingOf, randomAnimationOf, randomSlideshow, randomAutoSlideshow
     ) where
 
 
@@ -267,35 +266,6 @@ randomSlideshow_(mkslides) = activityOf(initial,update,render)
       where
       r:rs = random
 
--------------------------------------------------------------------------------
--- Animation Helpers
--------------------------------------------------------------------------------
-
--- | The expression @between(t,start,stop,drawing)@ will show
--- the given @drawing@ when the time @t@ is between @start@ and @stop@
-between :: (Number,Number,Number,Picture) -> Picture
-between(t,start,stop,drawing) =
-  if t < start then blank
-  else if t < stop then drawing
-  else blank
-
--- | The expression @beyond(t,start,drawing)@ will
--- show the given @drawing@ when the time @t@ is beyond the @start@ time
-beyond :: (Number,Number,Picture) -> Picture
-beyond(t,start,drawing) =
-  if t < start then blank
-  else drawing
-
--- | The expression @saw(t,p)@ is @0@
--- when @t=0@, increases up to 1 when @t=p/2@, and then decreases back
--- to 0 when @t=p@.
--- This increasing and decreasing when @t@ goes from @0@ to @p@ is called
--- an oscillation of period @p@. The oscillations will keep repeating,
--- so that the function is @0@ when @t@ is @0,p,2p,3p,4p,5p,...@
--- and it is 1 when @t@ is @p/2@, @3p/2@, @5p/2@, @7p/2@, @...@
-saw :: (Number,Number) -> Number
-saw(t,p) = 1 - abs(2*abs(remainder(t,p))/p - 1)
-
 ------------------------------------------------------------------------------
 -- Curve interpolation 
 ------------------------------------------------------------------------------
@@ -384,23 +354,24 @@ closedCurvePoints :: ([Point],Number) -> [Point]
   dist(p,q) = vectorLength(vectorDifference(p,q))
 
 
--------------------------------------------------------------------------------
---- Layout
--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+-- Text-based output
+--------------------------------------------------------------------------------
 
--- | A driver that wraps `pageFromTexts` in a `slideshow`. Look at the example
--- under `pageFromTexts` to see how this function is implemented. The inputs of
+-- | Show the given list of texts one per line, and break it up into pages at
+-- 40 lines per page.
+pagesOf :: [Text] -> Program
+pagesOf(lines) = customPagesOf(lines,40)
+
+-- | A driver that wraps `fittedPageFromTexts` in a `slideshow`. Look at the example
+-- under `fittedPageFromTexts` to see how this function is implemented. The inputs of
 -- this function are a list of lines of Text and the number of lines to
 -- show in a single page, which usually should be 40.
-paginationOf :: ([Text],Number) -> Program
-paginationOf(lines,num) = slideshow(pages)
+customPagesOf :: ([Text],Number) -> Program
+customPagesOf(lines,num) = slideshow(pages)
     where
     pages = foreach(gs,pageFromTexts)
     gs = groups(lines,num)
-
--- | A simplified version of `paginationOf` that assumes 40 lines per page
-showPages :: [Text] -> Program
-showPages(lines) = paginationOf(lines,40)
 
 -- | A picture that represents the given list of texts, so that each
 -- text in the list is shown in a separate line. Lines start at the
@@ -412,7 +383,7 @@ showPages(lines) = paginationOf(lines,40)
 --
 -- > program = slideshow(pages)
 -- >   where
--- >   pages = foreach(gs,pageFromTexts)
+-- >   pages = foreach(gs,fittedPageFromTexts)
 -- >   gs = groups(ls,40)
 -- >   ls = foreach(result,\g -> joinedWith(g,", "))
 -- >   result = groups(forloop(1,(<= 2000000),(+ 1),printed),7)
@@ -422,13 +393,17 @@ showPages(lines) = paginationOf(lines,40)
 -- page has 40 lines, each of which has 7 numbers. This example uses
 -- 'forloop' and 'foreach' from "Extras.Util".
 --
-pageFromTexts :: [Text] -> Picture
-pageFromTexts(lines) = combined([showline(i) | i <- [1..n]])
+fittedPageFromTexts :: [Text] -> Picture
+fittedPageFromTexts(lines) = combined([showline(i) | i <- [1..n]])
     where
     n = length(lines)
     showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),(0,10.25-0.5*i))
     -- Output should be 40 rows and 66 columns
     fmt(txt) = styledLettering(lJustified(txt,66),Monospace,Italic)
+
+-------------------------------------------------------------------------------
+--- Layout
+-------------------------------------------------------------------------------
 
 -- | A @grid(cell,rows,columns)@ is a grid with the given number of @rows@ and
 -- @columns@, where the rows are numbered top to bottom (top row is row 1)

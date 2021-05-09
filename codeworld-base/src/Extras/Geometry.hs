@@ -9,7 +9,7 @@ module Extras.Geometry
 
 import Prelude
 import Extras.Op
-import Extras.Util
+import Extras.Util hiding(between)
 
 import "base" Prelude (Maybe(..),zip)
 

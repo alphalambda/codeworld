@@ -52,6 +52,7 @@ module Internal.Exports (
     , styledLettering
     , Font(..)
     , TextStyle(..)
+    , pageFromTexts
     -- * Operations on Pictures
     , right
     , up
@@ -107,6 +108,10 @@ module Internal.Exports (
     , scaledVector
     , rotatedVector
     , dotProduct
+    -- * Animations
+    , Animation
+    , staticMotion, repeatedMotion, delayedMotion, fasterMotion
+    , transformedMotion, combinedMotions, showBetween, travelBetween
     -- * Pipes and Control Flow
     , (|>)
     , apply
@@ -191,6 +196,86 @@ upPoint((x,y),n) = (x, y+n)
 -- | A Picture of a dot standing at the origin.
 centerDot :: Picture
 centerDot = solidCircle(0.1)
+
+
+--------------------------------------------------------------------------------
+-- Animation
+--------------------------------------------------------------------------------
+
+-- | You can simulate motion by specifying slightly different pictures at different
+-- instants in time (measured in seconds). Thus, an animation is just a function
+-- of time that specifies which picture to show at each time.
+type Animation = Number -> Picture
+
+-- | The expression @saw(t,p)@ is @0@
+-- when @t=0@, increases up to 1 when @t=p/2@, and then decreases back
+-- to 0 when @t=p@.
+-- This increasing and decreasing when @t@ goes from @0@ to @p@ is called
+-- an oscillation of period @p@. The oscillations will keep repeating,
+-- so that the function is @0@ when @t@ is @0,p,2p,3p,4p,5p,...@
+-- and it is 1 when @t@ is @p/2@, @3p/2@, @5p/2@, @7p/2@, @...@
+saw :: (Number,Number) -> Number
+saw(t,p) = 1 - abs(2*abs(remainder(t,p))/p - 1)
+
+-- | An animation that just shows the same static picture at all times
+staticMotion :: Picture -> Animation
+staticMotion(pic)(t) = pic
+
+-- | @repeatedMotion(period,motion)@ repeats the given @motion@ every
+-- @period@ seconds. The @motion@ should begin at time 0 and end at time 1.
+repeatedMotion :: (Number,Animation) -> Animation
+repeatedMotion(period,motion)(t) = motion(saw(t,period))
+
+-- | @delayedMotion(delay,motion)@ delays the start of the given @motion@
+-- until @dealy@ seconds have passed.
+delayedMotion :: (Number,Animation) -> Animation
+delayedMotion(delay,motion)(t) = if t < delay then blank else motion(t-delay)
+
+-- | @fasterMotion(factor,motion)@ will play the given @motion@ @factor@ times
+-- faster than normal. If @factor@ is a number between 0 and 1, then @motion@
+-- will actually play slower than normal.
+fasterMotion :: (Number,Animation) -> Animation
+fasterMotion(factor,motion)(t) = motion(factor*t)
+
+-- | Apply the given transformation to an animation. Since most transformations
+-- have additional parameters, you will need to use the functions 'fixed1' or
+-- 'fixed2' to add those parameters.
+--
+-- Example:
+--
+-- shiftedRight = transformedMotion(fixed2(right,5)) -- move an animation to the right
+--
+-- animation1 = circle -- A circle centered at the origin that grows with time
+--
+-- animation2 = shiftedRight(animation1) -- A circle centered at (5,0) that grows
+--
+transformedMotion :: (Picture -> Picture) -> (Animation -> Animation)
+transformedMotion(trans)(motion)(t) = trans(motion(t))
+
+-- | This function is similar to 'combined', but it combines animations
+combinedMotions :: [Animation] -> Animation
+combinedMotions(moves)(t) = combined(distributed(execute,moves))
+  where
+  execute(move) = move(t)
+
+-- | @showBetween(start,finish,motion)@ shows @motion@ only when time is
+-- between @start@ and @finish@. The @motion@ should be defined
+-- so that it begins at time 0 and ends at time 1. It will then be
+-- automatically adjusted, so that it begins at time @start@ and ends at
+-- time @finish@.
+showBetween :: (Number,Number,Animation) -> Animation
+showBetween(ini,fin,motion)(t)
+    | ini <= t && t < ini = motion( (t-ini) / (fin-ini) )
+    | otherwise = blank
+
+-- | This function is similar to 'showBetween', but it will show
+-- the initial picture @motion(0)@ before the start time, and it
+-- will show the final picture @motion(1)@ after the finish time.
+travelBetween :: (Number,Number,Animation) -> Animation
+travelBetween(ini, fin, motion)(t) 
+    | t < ini = motion(0)
+    | ini <= t && t < fin = motion( (t-ini) / (fin-ini) )
+    | fin <= t = motion(1)
 
 --------------------------------------------------------------------------------
 -- Pipes and Control Flow
@@ -304,3 +389,21 @@ set(k,v) = M.insert (fromCWText k) v
 
 get :: (Text,Number) -> Params -> Number
 get(k,v) = M.findWithDefault v (fromCWText k)
+
+--------------------------------------------------------------------------------
+-- Text-based output
+--------------------------------------------------------------------------------
+
+-- | A picture that represents the given list of texts, so that each
+-- text in the list is shown in a separate line. Lines start at the
+-- top left corner of the output window and grow downward.
+-- Each line of text can fit 66 characters, and 40 lines can fit
+-- in a single page. The lettering is shown in monospaced font.
+pageFromTexts :: [Text] -> Picture
+pageFromTexts(lines) = combined([showline(i) | i <- [1..n]])
+    where
+    n = length(lines)
+    showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),(0,10.25-0.5*i))
+    -- Output should be 40 rows and 66 columns
+    fmt(txt) = styledLettering(txt,Monospace,Italic)
+
