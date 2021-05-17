@@ -112,6 +112,7 @@ module Internal.Exports (
     , Animation
     , staticMotion, repeatedMotion, delayedMotion, fasterMotion
     , transformedMotion, combinedMotions, showBetween, travelBetween
+    , saw
     -- * Pipes and Control Flow
     , (|>)
     , apply
