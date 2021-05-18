@@ -16,7 +16,7 @@
 
 source base.sh
 
-run . rm -rf data/base/* data/codeworld/build/*
+#run . rm -rf data/base/* data/codeworld/build/*
 #run . rm -rf data/*/build
 #rm -rf $(for fn in $(find data/base -atime +20 -regex .*\\.js$ ); do dirname $fn; done)
 
