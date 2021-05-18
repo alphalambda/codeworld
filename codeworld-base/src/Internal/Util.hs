@@ -35,7 +35,7 @@ module Internal.Util(
     , logicalGroupBy, alphabeticalGroupBy, numericalGroupBy
     , alphabeticalSortedOn, numericalSortedOn
     -- * Control flow
-    , run, recur, repeat, recurWhile, repeatWhile
+    , run, repeatFor, repeatWhile
     , foreach, forloop, whileloop
     -- * List manipulation
     , prepend, append, list, listn, butLast, pairs, unpairs, zipped, unzipped
@@ -43,6 +43,7 @@ module Internal.Util(
     -- * Text formatting
     , lJustified, rJustified
     , printedDecimals, printedNumbers, printedPoint
+    , letteringBlock, letteringBlockLengths
     -- * Other useful functions
     , cumulativeSums
     , pass
@@ -88,8 +89,7 @@ selectedKeys(kvList, pred) = P.map fst . P.filter (pred.snd) $ kvList
 -- | A predicate that holds whenever all the given predicates
 -- hold.
 -- The trailing underscore in the function name is included
--- to distinguish it from the predicate named 'all'
--- in the "Standard" library.
+-- to distinguish it from the predicate named 'all'.
 all_ :: [Predicate value] -> Predicate value
 all_(preds)(v) = all(P.map test preds)
   where
@@ -98,8 +98,7 @@ all_(preds)(v) = all(P.map test preds)
 -- | A predicate that holds whenever at least one of the given
 -- predicates holds.
 -- The trailing underscore in the function name is included
--- to distinguish it from the predicate named 'any'
--- in the "Standard" library.
+-- to distinguish it from the predicate named 'any'.
 any_ :: [Predicate value] -> Predicate value
 any_(preds)(v) = any(P.map test preds)
   where
@@ -278,40 +277,22 @@ run([])(x) = x
 run(f:fs)(x) = run(fs)(f(x))
 
 -- | Repeat a transformation the given number of times.
--- For example, the expression @recur(3,f)(x)@ is the same as @f(f(f(x)))@.
+-- For example, the expression @repeatFor(3,f)(x)@ is the same as @f(f(f(x)))@.
 -- If you use a negative number or a number with decimals, the sign and
--- the decimals will be ignored. For example, @recur(-7.3,f)@ will repeat
+-- the decimals will be ignored. For example, @repeatFor(-7.3,f)@ will repeat
 -- @7@ times.
-recur :: (Number,value -> value) -> value -> value
-recur(n,f) = go (truncated(abs(n)))
+repeatFor :: (Number,value -> value) -> value -> value
+repeatFor(n,f) = go (truncated(abs(n)))
     where
     go 0 x = x
     go n x = go (n-1) (f x)
 
--- | Repeat a sequence of transformations a given number of times.
--- For example, the expression @repeat(2,[f1,f2])(x)@ is the same as
--- @f2(f1(f2(f1(x))))@.
--- If you use a negative number or a number with decimals, the sign and
--- the decimals will be ignored. For example, @repeat(-7.3,seq)@ will repeat
--- @7@ times.
-repeat :: (Number,[value -> value]) -> value -> value
-repeat(n,fs) = recur(n,run(fs))
-
 -- | Keep repeating a transformation while the given predicate is True.
 -- The result is the first value that does not satisfy the predicate.
-recurWhile :: (Predicate value, value -> value) -> value -> value
-recurWhile(cond,next)(input) = go input
+repeatWhile :: (Predicate value, value -> value) -> value -> value
+repeatWhile(cond,next)(input) = go input
     where
     go x = if cond x then go(next x) else x
-
--- | Keep repeating a sequence of transformations while
--- the given predicate is True
--- The result is the first value that does not satisfy the predicate.
-repeatWhile :: (Predicate value, [value -> value]) -> value -> value
-repeatWhile(cond,fs)(input) = loop (repeating fs) input
-    where
-    loop [] x = x
-    loop (f:fs) x = if cond x then loop fs (f x) else x
 
 -- | Constructs a list by applying a function
 -- to all the elements of a given list
@@ -354,9 +335,9 @@ foreach(l,f) = P.map f l
 --
 -- > foreach(list,f) = forloop(list,nonEmpty,\l -> rest(l,1),\l -> f(l#1))
 --
--- 'recurWhile':
+-- 'repeatWhile':
 --
--- > recurWhile(check,f)(v) = last(v:forloop(input,cond,next,output),1)#1
+-- > repeatWhile(check,f)(v) = last(v:forloop(input,cond,next,output),1)#1
 -- >     where
 -- >     input        = (x,f(x))
 -- >     cond  (x, _) = check(x)
@@ -373,7 +354,7 @@ forloop(input,cond,next,output)
 -- | The function @whileloop@ works similarly to 'forloop', but instead
 -- of collecting outputs of intermediate states, a single output is collected
 -- at the end of the loop. The expression @whileloop(input,cond,next,output)@
--- is a shortcode for @output(recurWhile(cond,next)(input))@.
+-- is a shortcode for @output(repeatWhile(cond,next)(input))@.
 --
 -- Example 1. The function 'indexOf' can be implemented as a /while loop/:
 --
@@ -417,7 +398,7 @@ forloop(input,cond,next,output)
 --
 whileloop :: (state,Predicate state,state -> state, state -> output)
           -> output
-whileloop(input,cond,next,output) = output(recurWhile(cond,next)(input))
+whileloop(input,cond,next,output) = output(repeatWhile(cond,next)(input))
 
 -------------------------------------------------------------------------------
 -- List manipulation
@@ -561,6 +542,26 @@ printedNumbers(list) = "[" <> printedRawNumbers(list) <> "]"
 -- | A text representation of the given point.
 printedPoint :: Point -> Text
 printedPoint(x,y) = "(" <> printed(x) <> "," <> printed(y) <> ")"
+
+-- | A picture that represents the given list of texts, so that each
+-- text in the list is shown in a separate line. Lines start at the
+-- top left corner of the output window and grow downward.
+-- Each line of text can fit 66 characters, and 40 lines can fit
+-- in a single page. The lettering is shown in monospaced font.
+letteringBlock :: [Text] -> Picture
+letteringBlock(lines) = combined([showline(i) | i <- [1..n]])
+    where
+    n = length(lines)
+    showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),(0,10.25-0.5*i))
+    -- Output should be 40 rows and 66 columns
+    fmt(txt) = styledLettering(lJustified(txt,66),Monospace,Italic)
+
+-- | The horizontal length (width) and the vertical length (height) of
+-- the output produced by @letteringBlock@ on the same input, so that you can
+-- place it at precise locations and add snuggly fit decorations to the text.
+letteringBlockLengths :: [Text] -> (Number,Number)
+letteringBlockLengths(texts) =
+    (maximum(P.map numberOfCharacters texts)*10/33, length(texts)/2)
 
 -------------------------------------------------------------------------------
 -- Other

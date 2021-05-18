@@ -10,7 +10,6 @@ where
 
 import Prelude
 import Extras.Op((<?>),(<$>))
-import Extras.Cw(fittedPageFromTexts)
 
 -- traced(x,_) = x
 
@@ -201,7 +200,7 @@ drawMany(Model{..}) = combined(
 
 
 drawInfos(model) = combined(
-  [ resized(pageFromTexts(movesInfo : "" : numInfos),2)
+  [ resized(letteringBlock(movesInfo : "" : numInfos),2)
   , combined[translated(solidRectangle(w,1),(w/2,8.5-i))
             | i <- [1..]
             | s <- pegs(model), let w = 9*count(s)/numDiscs(model)

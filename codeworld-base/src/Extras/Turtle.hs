@@ -16,8 +16,8 @@ module Extras.Turtle(
     -- * Specific Turtle commands (only in CodeWorld)
     , overxy, sethome, origin, turtle
     , randomized, repeatRandom
-    -- * Program control (re-exported from "Extras.Util")
-    , repeat, run, foreach, forloop
+    -- * Program control
+    , repeat
     -- * Tracks
     , Track, track, tracks, partialTracks, randomTracks
     , trackLength, alongTrack
@@ -70,6 +70,10 @@ import Extras.Op
 -- The example above will show a square of side length 1 with
 -- its lower left corner at the origin.
 
+
+-- Run a sequence of transformations a given number of times
+repeat :: (Number,[value -> value]) -> value -> value
+repeat(n,fs) = repeatFor(n,run(fs))
 
 -------------------------------------------------------------------------------
 -- Turtle

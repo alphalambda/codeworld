@@ -40,7 +40,6 @@ module Extras.Cw(
     -- * Functions for accessing the points in a curve
     , openCurvePoints, closedCurvePoints
     -- * Layout
-    , fittedPageFromTexts
     , grid, sprite, overlays, underlays
     , squareFrame
     -- * Graphing
@@ -362,27 +361,15 @@ closedCurvePoints :: ([Point],Number) -> [Point]
 pagesOf :: [Text] -> Program
 pagesOf(lines) = customPagesOf(lines,40)
 
--- | A driver that wraps `fittedPageFromTexts` in a `slideshow`. Look at the example
--- under `fittedPageFromTexts` to see how this function is implemented. The inputs of
--- this function are a list of lines of Text and the number of lines to
+-- | A driver that wraps `letteringBlock` in a `slideshow`.
+-- The inputs of this function are a list of lines of Text and the number of lines to
 -- show in a single page, which usually should be 40.
-customPagesOf :: ([Text],Number) -> Program
-customPagesOf(lines,num) = slideshow(pages)
-    where
-    pages = foreach(gs,pageFromTexts)
-    gs = groups(lines,num)
-
--- | A picture that represents the given list of texts, so that each
--- text in the list is shown in a separate line. Lines start at the
--- top left corner of the output window and grow downward.
--- Each line of text can fit 66 characters, and 40 lines can fit
--- in a single page. The lettering is shown in monospaced font.
 --
--- Example:
+-- This wrapper is equivalent to the following code:
 --
 -- > program = slideshow(pages)
 -- >   where
--- >   pages = foreach(gs,fittedPageFromTexts)
+-- >   pages = foreach(gs,letteringBlock)
 -- >   gs = groups(ls,40)
 -- >   ls = foreach(result,\g -> joinedWith(g,", "))
 -- >   result = groups(forloop(1,(<= 2000000),(+ 1),printed),7)
@@ -392,13 +379,11 @@ customPagesOf(lines,num) = slideshow(pages)
 -- page has 40 lines, each of which has 7 numbers. This example uses
 -- 'forloop' and 'foreach' from "Extras.Util".
 --
-fittedPageFromTexts :: [Text] -> Picture
-fittedPageFromTexts(lines) = combined([showline(i) | i <- [1..n]])
+customPagesOf :: ([Text],Number) -> Program
+customPagesOf(lines,num) = slideshow(pages)
     where
-    n = length(lines)
-    showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),(0,10.25-0.5*i))
-    -- Output should be 40 rows and 66 columns
-    fmt(txt) = styledLettering(lJustified(txt,66),Monospace,Italic)
+    pages = foreach(gs,letteringBlock)
+    gs = groups(lines,num)
 
 -------------------------------------------------------------------------------
 --- Layout

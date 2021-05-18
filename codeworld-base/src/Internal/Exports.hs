@@ -52,7 +52,6 @@ module Internal.Exports (
     , styledLettering
     , Font(..)
     , TextStyle(..)
-    , pageFromTexts
     -- * Operations on Pictures
     , right
     , up
@@ -390,21 +389,3 @@ set(k,v) = M.insert (fromCWText k) v
 
 get :: (Text,Number) -> Params -> Number
 get(k,v) = M.findWithDefault v (fromCWText k)
-
---------------------------------------------------------------------------------
--- Text-based output
---------------------------------------------------------------------------------
-
--- | A picture that represents the given list of texts, so that each
--- text in the list is shown in a separate line. Lines start at the
--- top left corner of the output window and grow downward.
--- Each line of text can fit 66 characters, and 40 lines can fit
--- in a single page. The lettering is shown in monospaced font.
-pageFromTexts :: [Text] -> Picture
-pageFromTexts(lines) = combined([showline(i) | i <- [1..n]])
-    where
-    n = length(lines)
-    showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),(0,10.25-0.5*i))
-    -- Output should be 40 rows and 66 columns
-    fmt(txt) = styledLettering(txt,Monospace,Italic)
-
