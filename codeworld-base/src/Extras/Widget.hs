@@ -504,10 +504,15 @@ hit(mx,my,Widget {..}) = abs(mx-x) < width/2 && abs(my-y) < height/2
   where
   (x,y) = centerAt
 
-hitReset(mx,my,Widget {..}) = mx - xmin < 0.3 && abs(my - y) < height/2
+hitReset(mx,my,Widget {..}) = leftEdge < dx && dx  < leftEdge + 0.3 && abs(my - y) < height/2
   where
   (x,y) = centerAt
-  xmin = x - width/2
+  dx = mx - x
+  leftEdge = -width/2
+
+side(mx,my,w) = if mx >= x then 1 else -1
+  where
+  (x,y) = w.#centerAt
   
 -------------------------------------------------------------------------------
 -- Draw
@@ -548,7 +553,10 @@ drawCounter(Widget{..}) = combined([ drawLabel, drawSelection ])
   w = 0.9 * width
   h = 0.9 * height
   drawLabel 
-    | highlight = msg(printed(value_.#conversion))
+    | highlight = combined[ msg(printed(value_.#conversion))
+                          , translated(msg(">"),(w/3,0))
+                          , translated(msg("<"),(-w/3,0))
+                          ]
     | otherwise = msg(label)
   drawSelection
     | isSelected = translated(colored(solid,cgrey),(x,y))
@@ -637,7 +645,7 @@ updateWidget(PointerPress(mx,my))(w@Widget{..})
                                        }
   | widget == Counter, hit(mx,my,w) = w { isSelected = True, highlight = True 
                                         , oldval = value_
-                                        , value_ = 1 + value_
+                                        , value_ = value_ + side(mx,my,w)
                                         }
   | widget == Toggle, hit(mx,my,w) = w { isSelected = not(isSelected)
                                        , oldval = value_
@@ -662,10 +670,10 @@ updateWidget(PointerPress(mx,my))(w@Widget{..})
 updateWidget(PointerMovement(mx,my))(w) =
   w.#updateHighlight(mx,my).#updateSlider(mx)
   
-updateWidget(PointerRelease(_))(w@Widget{..})
+updateWidget(PointerRelease(mx,my))(w@Widget{..})
   | widget == Toggle = w
   | widget == Timer  = w
-  | isSelected         = w { isSelected = False, highlight = False
+  | isSelected         = w { isSelected = False, highlight = hit(mx,my,w)
                          , oldval = value_
                          , value_ = if widget == Button then 0 else value_
                          }
