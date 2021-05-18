@@ -24,7 +24,7 @@
 -- > import Extras.Util(function1,function2,function3)
 --
 
-module Extras.Util(
+module Internal.Util(
     -- * Predicates
     Predicate, precedes, is_in, nonEmpty
     , between, above, below, exactly
@@ -49,7 +49,11 @@ module Extras.Util(
     , textHash
     ) where
 
-import Prelude
+import Internal.Prelude hiding (randomsFrom)
+import Internal.Num
+import Internal.Picture
+import Internal.Text
+
 import qualified Data.List as L
 import Internal.Text(fromCWText,toCWText)
 import qualified "base" Prelude as P
@@ -87,7 +91,7 @@ selectedKeys(kvList, pred) = P.map fst . P.filter (pred.snd) $ kvList
 -- to distinguish it from the predicate named 'all'
 -- in the "Standard" library.
 all_ :: [Predicate value] -> Predicate value
-all_(preds)(v) = all(distributed(test,preds))
+all_(preds)(v) = all(P.map test preds)
   where
   test(pred) = pred(v)
 
@@ -97,7 +101,7 @@ all_(preds)(v) = all(distributed(test,preds))
 -- to distinguish it from the predicate named 'any'
 -- in the "Standard" library.
 any_ :: [Predicate value] -> Predicate value
-any_(preds)(v) = any(distributed(test,preds))
+any_(preds)(v) = any(P.map test preds)
   where
   test(pred) = pred(v)
 
@@ -530,6 +534,9 @@ rJustified(txt,width)
 -- approximately equal to the given number. When the number of decimals
 -- requested is 1 or more, a decimal point is also included in the text
 -- representation, followed or preceded by 0 if necessary.
+-- 
+-- > printedDecimals(7.89,1) -- is "7.9"
+-- 
 printedDecimals :: (Number,Number) -> Text
 printedDecimals(number,prec)
     | number < 0 = "-" <> printedDecimals(-number,prec)

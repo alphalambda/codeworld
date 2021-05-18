@@ -28,7 +28,8 @@ module Prelude (
     , module Internal.Text
     -- * General purpose functions
     , module Internal.Prelude
-    , IO
+    -- * Additional utility functions
+    , module Internal.Util
     ) where
 
 import Internal.Exports
@@ -38,6 +39,7 @@ import Internal.Num
 import Internal.Prelude hiding (randomsFrom)
 import Internal.Text hiding (fromCWText, toCWText)
 
+import Internal.Util
 {-
 import Internal.CodeWorld
 import Internal.Color

@@ -51,7 +51,6 @@ module Extras.Cw(
 
 
 import Prelude
-import Extras.Util
 
 -------------------------------------------------------------------------------
 --- Top Level

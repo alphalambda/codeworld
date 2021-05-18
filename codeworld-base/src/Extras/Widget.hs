@@ -147,7 +147,7 @@ guiActivityOf(widgetsUser,initUser,updateUser,drawUser) =
 -- the user interface. You
 -- have access only to the current value of each widget.
 data Widget = Widget
-  { selected :: Truth
+  { isSelected :: Truth
   , highlight :: Truth
   , width :: Number
   , height :: Number
@@ -468,7 +468,7 @@ data WidgetType = Button | Toggle | Slider
 data ReactorType = NoReact | React ReactorFun
 
 newWidget(l,x,y) = Widget
-  { selected = False, highlight = False, width = 4, height = 1
+  { isSelected = False, highlight = False, width = 4, height = 1
   , centerAt = (x,y), label = l
   , value_ = 0, oldval = 0
   , conversion = noConv
@@ -532,7 +532,7 @@ drawButton(Widget{..}) =
   h = 0.9 * height
   drawLabel = translated(msg,(x,y))
   drawSelection
-    | selected = translated(colored(solid,cgrey),(x,y))
+    | isSelected = translated(colored(solid,cgrey),(x,y))
     | otherwise = translated(outline,(x,y))
   drawHighlight
     | highlight = translated(colored(rectangle(width,height),light(cgrey)),(x,y))
@@ -551,7 +551,7 @@ drawCounter(Widget{..}) = combined([ drawLabel, drawSelection ])
     | highlight = msg(printed(value_.#conversion))
     | otherwise = msg(label)
   drawSelection
-    | selected = translated(colored(solid,cgrey),(x,y))
+    | isSelected = translated(colored(solid,cgrey),(x,y))
     | highlight = translated(colored(outline,cblack),(x,y))
     | otherwise = translated(colored(outline,cgrey),(x,y))
 
@@ -561,7 +561,7 @@ drawToggle(Widget{..}) = combined([ drawSelection, drawLabel, drawHighlight ])
   h = 0.5
   x' = x + 2/5*width
   drawSelection
-    | selected = translated(colored(solidRectangle(w,h),cgrey),(x',y))
+    | isSelected = translated(colored(solidRectangle(w,h),cgrey),(x',y))
     | otherwise = translated(rectangle(0.9*w,0.9*h),(x',y))
   drawLabel = translated(msg,(x - width/10,y))
   drawHighlight
@@ -582,7 +582,7 @@ drawTimer(Widget{..}) =
     | highlight = msg(printed(value_.#conversion))
     | otherwise = msg(label)
   drawSelection
-    | selected  = translated(box(0.5,0.5), (x', y))
+    | isSelected  = translated(box(0.5,0.5), (x', y))
     | otherwise = translated(rectangle(0.45,0.45),(x',y))
   drawReset = translated(box(0.3,height), (xmin+0.15, y))
   drawHighlight
@@ -618,7 +618,7 @@ drawRandom(Widget{..}) = combined([ drawLabel, drawSelection, drawHighlight ])
     | highlight = msg(printed(value_.#conversion))
     | otherwise = msg(label)
   drawSelection
-    | selected = translated(colored(solid,cgrey),(x,y))
+    | isSelected = translated(colored(solid,cgrey),(x,y))
     | otherwise = blank
   drawHighlight
     | highlight = translated(outline,(x,y))
@@ -629,30 +629,30 @@ drawRandom(Widget{..}) = combined([ drawLabel, drawSelection, drawHighlight ])
 -------------------------------------------------------------------------------
 
 updateWidget(PointerPress(mx,my))(w@Widget{..})
-  | widget == Button, hit(mx,my,w) = w { selected = True, highlight = False 
+  | widget == Button, hit(mx,my,w) = w { isSelected = True, highlight = False 
                                        , oldval = value_ , value_ = 1
                                        }
-  | widget == Button               = w { selected = False, highlight = False 
+  | widget == Button               = w { isSelected = False, highlight = False 
                                        , oldval = value_ , value_ = 0
                                        }
-  | widget == Counter, hit(mx,my,w) = w { selected = True, highlight = True 
+  | widget == Counter, hit(mx,my,w) = w { isSelected = True, highlight = True 
                                         , oldval = value_
                                         , value_ = 1 + value_
                                         }
-  | widget == Toggle, hit(mx,my,w) = w { selected = not(selected)
+  | widget == Toggle, hit(mx,my,w) = w { isSelected = not(isSelected)
                                        , oldval = value_
                                        , value_ = 1 - value_
                                        , highlight = True
                                        }
   | widget == Timer, hitReset(mx,my,w) = w { oldval = value_ , value_ = 0 }
-  | widget == Timer, hit(mx,my,w)  = w { selected = not(selected)
+  | widget == Timer, hit(mx,my,w)  = w { isSelected = not(isSelected)
                                        , highlight = True
                                        }
-  | widget == Slider, hit(mx,my,w) = w { selected = True, highlight = True
+  | widget == Slider, hit(mx,my,w) = w { isSelected = True, highlight = True
                                        , oldval = value_
                                        , value_ = updateSliderValue(mx,w)
                                        }
-  | widget == Random, hit(mx,my,w) = w { selected = True, highlight = True
+  | widget == Random, hit(mx,my,w) = w { isSelected = True, highlight = True
                                        , oldval = value_
                                        , value_ = randomPool#1
                                        , randomPool = rest(randomPool,1)
@@ -665,14 +665,14 @@ updateWidget(PointerMovement(mx,my))(w) =
 updateWidget(PointerRelease(_))(w@Widget{..})
   | widget == Toggle = w
   | widget == Timer  = w
-  | selected         = w { selected = False, highlight = False
+  | isSelected         = w { isSelected = False, highlight = False
                          , oldval = value_
                          , value_ = if widget == Button then 0 else value_
                          }
   | otherwise        = w
 
 updateWidget(TimePassing(dt))(w@Widget{..})
-  | widget == Timer, selected = w { oldval = value_ , value_ = dt + value_ }
+  | widget == Timer, isSelected = w { oldval = value_ , value_ = dt + value_ }
   | otherwise = w
   
 updateWidget(_)(widget) = widget
@@ -682,7 +682,7 @@ updateHighlight(mx,my)(w)
   | otherwise    = w { highlight = False }
 
 updateSlider(mx)(w@Widget{..})
-  | widget == Slider, selected = w { oldval = value_
+  | widget == Slider, isSelected = w { oldval = value_
                                    , value_ = updateSliderValue(mx,w)
                                    }
   | otherwise                  = w

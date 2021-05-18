@@ -16,7 +16,6 @@ module Extras.Stamp(
 import Prelude
 import Extras.Cw(slideshow,randomDrawingOf)
 import Extras.Op
-import Extras.Util
 
 -------------------------------------------------------------------------------
 -- $intro

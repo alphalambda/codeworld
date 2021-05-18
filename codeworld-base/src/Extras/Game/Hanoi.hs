@@ -11,7 +11,6 @@ where
 import Prelude
 import Extras.Op((<?>),(<$>))
 import Extras.Cw(fittedPageFromTexts)
-import Extras.Util(cumulativeSums,printedNumbers,rJustified)
 
 -- traced(x,_) = x
 

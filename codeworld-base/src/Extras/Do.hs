@@ -13,7 +13,7 @@ module Extras.Do
 where
 
 import qualified "base" Prelude as P
-import           "base" Prelude ((>>=),(>>),return,Maybe(..),putStrLn,($))
+import           "base" Prelude ((>>=),(>>),return,Maybe(..),putStrLn,($),IO)
 
 import Internal.Text(fromCWText)
 

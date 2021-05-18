@@ -7,9 +7,8 @@
 module Extras.Geometry
     where
 
-import Prelude
+import Prelude hiding(between)
 import Extras.Op
-import Extras.Util hiding(between)
 
 import "base" Prelude (Maybe(..),zip)
 
