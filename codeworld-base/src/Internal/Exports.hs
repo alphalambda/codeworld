@@ -115,7 +115,9 @@ module Internal.Exports (
     -- * Pipes and Control Flow
     , (|>)
     , apply
-    , clone
+    , pairedBefore
+    , pairedAfter
+    , cloned
     , distributed
     , iterated
     , map
@@ -148,7 +150,7 @@ import Internal.Color
 import Internal.Event
 import Internal.Picture hiding (coordinatePlane)
 
--- | The name of this function is a portmanteau of 'clone' and 'apply'.
+-- | The name of this function is a portmanteau of 'cloned' and 'apply'.
 -- This function is intended to be used with pipes.
 -- A typical use has the form
 -- 
@@ -308,30 +310,42 @@ travelBetween(ini, fin, motion)(t)
 (|>) :: a -> (a -> b) -> b
 x |> f = f(x)
 
--- | This function is similar to 'distributed' but uses functions of two
--- arguments, where the first argument is an `object` and the second argument
--- is a `parameter`. When a list of `objects` is received from a pipeline,
--- an output stream of transformed objects is produced, where a different
--- parameter is used for each object transformation.
+-- | @apply(transformations)@ takes inputs from a pipe and applies
+-- the first transformation to the first input, the second transformation
+-- to the second input, and so on.
 --
 -- For example, the following code will produce a list of shapes of
 -- different colors:
 --
--- > [solidCircle(1),solidRectangle(2,3),solidPolygon([(-1,0),(0,1),(1,0)])
--- > |> apply(colored, [RGB(1,0,0), RGB(0,1,0), RGB(0,0,1)])
+-- > [solidCircle(1),solidRectangle(2,3),solidPolygon([(-5,0),(0,5),(5,0)])]
+-- > |> pairedBefore([RGB(1,0,0), RGB(0,1,0), RGB(0,0,1)])
+-- > |> zipped
+-- > |> apply(cloned(colored))
 --
-apply :: ( ((input,param) -> output ), [param] ) -> [input] -> [output]
-apply(f,xs)(os) = [ f(o,x) | x <- xs | o <- os ]
+apply :: [input -> output] -> [input] -> [output]
+apply [] _ = []
+apply _ [] = []
+apply (f:fs) (v:vs) = f(v) : apply fs vs
 
--- | An infinite list of clones of the given 'object'
-clone :: object -> [object]
-clone(o) = repeating([o])
+-- | @cloned(object)@ is an infinite list of clones of the given @object@
+cloned :: object -> [object]
+cloned(o) = repeating([o])
 
 -- | @distributed(transformation,objects)@ is a list of
 -- objects, where each object is created by applying the given
 -- 'transformation' to each object in the given list of 'objects'.
 distributed :: ((a -> b), [a]) -> [b]
 distributed(f,xs) = map f xs
+
+-- | @pairedBefore(b)@ is a function that takes an input @a@ from
+-- a pipe and produces the pair @(a,b)@
+pairedBefore :: b -> a -> (a,b)
+pairedBefore(b)(a) = (a,b)
+
+-- | @pairedAfter(a)@ is a function that takes an input @b@ from
+-- a pipe and produces the pair @(a,b)@
+pairedAfter :: a -> b -> (a,b)
+pairedAfter(a)(b) = (a,b)
 
 -- | Select those elements from a list which satisfy the given predicate.
 -- The list usually comes from a pipeline.
