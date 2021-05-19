@@ -14,7 +14,8 @@ module Extras.Queue(
   Queue,qNew,qLength,qFront,qRest,qAppended,qNumber
   ) where
   
-import Prelude
+import Internal.Prelude
+import Internal.Num
 
 ----------------------------------------------------------------------------
 -- $intro

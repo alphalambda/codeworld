@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImplicitPrelude #-}
 {-
   Copyright 2019 The CodeWorld Authors. All rights reserved.
 
@@ -29,3 +30,8 @@ module Core (
     ifThenElse,
     fail
     ) where
+
+import Internal.Prelude
+import Internal.Num
+import Internal.Text
+import Internal.CodeWorld

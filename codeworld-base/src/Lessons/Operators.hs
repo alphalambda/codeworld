@@ -10,7 +10,7 @@ module Lessons.Operators(
     add, sub, mul, div
     ) where
 
-import Prelude
+import Internal.Num
 
 -- | add the two given numbers
 add :: (Number,Number) -> Number

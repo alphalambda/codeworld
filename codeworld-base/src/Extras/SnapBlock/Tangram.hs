@@ -8,7 +8,11 @@
 module Extras.SnapBlock.Tangram(tangramL,tangramS,tangramM,tangramD,tangramR,inventory)
 where
 
-import Prelude
+import Internal.Num
+import Internal.Text
+import Internal.Picture
+import Internal.Color
+
 import Extras.SnapBlock
 
 tangramL = snapBlock([(-2,0),(2,0),(0,2)])

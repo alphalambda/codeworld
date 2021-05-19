@@ -49,7 +49,14 @@ module Extras.Cw(
     ) where
 
 
-import Prelude
+import Internal.Prelude
+import Internal.Num
+import Internal.CodeWorld
+import Internal.Event
+import Internal.Picture
+import Internal.Text
+import Internal.Color
+import Internal.Util
 
 -------------------------------------------------------------------------------
 --- Top Level

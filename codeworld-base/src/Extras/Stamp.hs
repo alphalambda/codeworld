@@ -13,7 +13,11 @@ module Extras.Stamp(
     , start, stop, stamp, save, stampRight, stampLeft, stampUp, stampDown, turn
     ) where
 
-import Prelude
+import Internal.Prelude
+import Internal.Num
+import Internal.Picture
+import Internal.Util
+
 import Extras.Cw(slideshow,randomDrawingOf)
 import Extras.Op
 

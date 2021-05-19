@@ -11,8 +11,8 @@
 module Extras.Op
 where
 
-import Prelude
-import           "base" Prelude (fst,snd)
+import Internal.Prelude
+import "base" Prelude (fst,snd,map,filter)
 
 -- | Applicative operator, used to apply a function to all the elements of a
 -- list

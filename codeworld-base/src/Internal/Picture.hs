@@ -240,12 +240,16 @@ thickArc (b, e, r, w) = withFrozenCallStack $ CWPic
 lettering :: HasCallStack => Text -> Picture
 lettering t = withFrozenCallStack $ CWPic (CW.lettering (fromCWText t))
 
+{-
+
 -- | A rendering of text characters.
 text :: HasCallStack => Text -> Picture
 text t = withFrozenCallStack $ CWPic (CW.lettering (fromCWText t))
 
 {-# WARNING text ["Please use lettering(...) instead of text(...).",
                   "text may be removed July 2020."] #-}
+
+-}
 
 -- | A rendering of text characters, with a specific choice of font and style.
 styledLettering :: HasCallStack => (Text, Font, TextStyle) -> Picture

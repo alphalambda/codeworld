@@ -10,8 +10,11 @@ module Lessons.Penguin(
     bird, penguin, landscape, water
     ) where
 
-import Prelude
-import Extras.Colors
+import Internal.Num
+import Internal.Text
+import Internal.Picture
+import Internal.Color
+
 
 bird = dilated(figure,0.5)
   where

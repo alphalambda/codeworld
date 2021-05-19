@@ -17,5 +17,11 @@ module Lessons.Logic(
     , Number
     ) where
 
-import Prelude
+import Internal.Prelude
+import Internal.CodeWorld
+import Internal.Picture
+import Internal.Text
+import Internal.Num
+import Internal.Color
+import Internal.Util
 

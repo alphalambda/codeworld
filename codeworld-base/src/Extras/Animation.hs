@@ -15,8 +15,12 @@ module Extras.Animation
        )
 where
 
-import Prelude
-
+import Internal.Prelude
+import Internal.Num
+import Internal.CodeWorld
+import Internal.Color
+import Internal.Picture
+import Internal.Util
 
 -------------------------------------------------------------------------------
 -- Animation API 

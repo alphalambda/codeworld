@@ -7,7 +7,14 @@
 module Extras.Geometry
     where
 
-import Prelude hiding(between)
+import Internal.Prelude
+import Internal.Num
+import Internal.Text
+import Internal.CodeWorld
+import Internal.Picture
+import Internal.Color
+import Internal.Util hiding(between)
+
 import Extras.Op
 
 import "base" Prelude (Maybe(..),zip)

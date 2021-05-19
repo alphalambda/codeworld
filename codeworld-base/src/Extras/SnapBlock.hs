@@ -12,7 +12,11 @@ module Extras.SnapBlock
        )
 where
 
-import Prelude
+import Internal.Prelude
+import Internal.Num
+import Internal.Color
+import Internal.Picture
+import Internal.Text
 
 newtype SnapBlock = SnapBlock [Point]
 

@@ -13,7 +13,9 @@ module Extras.Colors(
     pink,brown
     ) where
 
-import Prelude
+import Internal.Prelude
+import Internal.Num
+import Internal.Color
 
 -- | Make a color from a color wheel with 6 color stops:
 -- 'red', 'yellow', 'green', 'cyan', 'blue', 'magenta', so that

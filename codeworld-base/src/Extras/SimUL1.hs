@@ -9,8 +9,15 @@ module Extras.SimUL1
        (Params(..), motionParams, motionOf)
 where
 
-import Prelude hiding (text)
-import           "base" Prelude (Maybe(..))
+import Internal.Prelude
+import Internal.Num
+import Internal.Text
+import Internal.CodeWorld
+import Internal.Event
+import Internal.Picture
+import Internal.Color
+
+import "base" Prelude (Maybe(..))
 
 -------------------------------------------------------------------------------
 --- Code for starting the program
@@ -246,7 +253,7 @@ make_sim(simrow,x_min,x_max,landmarks,parts) =
               colored(translated(txt,(screen_coords(position),simrow+1+number)),color)
               where
               number = if velo >= 0 then 0 else 1
-              txt = scaled(text(txt3),0.6,0.6)
+              txt = scaled(lettering(txt3),0.6,0.6)
               txt1 = approximate(time)
               txt2 = characters(txt1)
               txt3 = joined(first(txt2,length(txt2)-2))
@@ -294,8 +301,8 @@ make_chart(ct,cx,ylabel,t_max,x_min,x_max) =
             translated(minilabel(t_max,0.4),(halfsize-0.2,-halfsize-0.2)),
             translated(minilabel(x_min,0.4),(-halfsize-0.5,-halfsize+0.2)),
             translated(minilabel(x_max,0.4),(-halfsize-0.5,halfsize-0.2)),
-            translated(scaled(text("time"),0.8,0.8),(0,-labelpos)),
-            translated(rotated(scaled(text(ylabel),0.8,0.8),90),(-labelpos,0))
+            translated(scaled(lettering("time"),0.8,0.8),(0,-labelpos)),
+            translated(rotated(scaled(lettering(ylabel),0.8,0.8),90),(-labelpos,0))
           ])
       in
         colored(translated(chart,(ct,cx)),cblack)
@@ -351,14 +358,14 @@ render(model) =
 
 render_info(time,click,nstates) = combined
     -- time box
-    [ translated(text("time"),(-8,9))
-    , translated(text(approximate(time)),(-8,8))
+    [ translated(lettering("time"),(-8,9))
+    , translated(lettering(approximate(time)),(-8,8))
     , translated(rectangle(2,2),(-8,8.5))
     -- click box
     , render_click(click)
     -- data box
-    , translated(scaled(text("position"),0.6,0.6),(-0.5,9))
-    , translated(scaled(text("velocity"),0.6,0.6),(2,9))
+    , translated(scaled(lettering("position"),0.6,0.6),(-0.5,9))
+    , translated(scaled(lettering("velocity"),0.6,0.6),(2,9))
     , translated(rectangle(10,1+nstates),(-1,9-0.5*nstates))
     ]
 
@@ -369,15 +376,15 @@ render_click(Just (x,y)) =
     txt = "(" <> approximate(x) <> "," <> approximate(y) <> ")"
   in
     combined
-      [ translated(text("click"),(7,9))
-      , translated(text(txt),(7,8))
+      [ translated(lettering("click"),(7,9))
+      , translated(lettering(txt),(7,8))
       , translated(rectangle(4.5,2),(7,8.5))
       ]
 
 render_data(name,position,velocity,row) = combined
-    [ translated(text(name),(-4,8-row))
-    , translated(text(approximate(position)),(-0.5,8-row))
-    , translated(text(approximate(velocity)),(2,8-row))
+    [ translated(lettering(name),(-4,8-row))
+    , translated(lettering(approximate(position)),(-0.5,8-row))
+    , translated(lettering(approximate(velocity)),(2,8-row))
     ]
 
 -------------------------------------------------------------------------------
@@ -416,8 +423,6 @@ handle(model,event) =
 -------------------------------------------------------------------------------
 -- Helper functions
 -------------------------------------------------------------------------------
-
-text = lettering
 
 -- using_simtime(upd,stime)(model,dtime) = upd(model,stime)
 
@@ -461,7 +466,7 @@ closest x' pts =
 
 minilabel(num,s) = minitext(approximate(num),s)
 
-minitext(txt,s) = scaled(text(txt),s,s)
+minitext(txt,s) = scaled(lettering(txt),s,s)
 
 cblack = RGB(0,0,0)
 cgreen = RGB(0,1,0)

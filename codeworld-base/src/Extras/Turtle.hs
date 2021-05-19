@@ -29,7 +29,14 @@ module Extras.Turtle(
     , customTurtle, turtlePosition, turtleAngle,
     ) where
 
-import Prelude
+import Internal.Prelude
+import Internal.Num
+import Internal.Text
+import Internal.Picture
+import Internal.Color
+import Internal.CodeWorld
+import Internal.Util
+
 import Extras.Cw(slideshow,randomDrawingOf)
 import Extras.Op
 

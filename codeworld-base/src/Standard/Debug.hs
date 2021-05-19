@@ -32,7 +32,7 @@ module Standard.Debug (
 -}
     ) where
 
-import Prelude as Include hiding (
+import Internal.Exports as Include hiding (
     drawingOf, animationOf
 {-
     , solidRectangle, solidCircle, solidPolygon, solidClosedCurve

@@ -11,7 +11,11 @@ module Lessons.Bear(
     pink, yellow, cyan, white, teddyBrown
 ) where
 
-import Prelude
+import Internal.Prelude
+import Internal.Num
+import Internal.Picture
+import Internal.Color
+
 import Extras.Colors
 
 teddyBrown :: Color

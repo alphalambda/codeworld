@@ -20,7 +20,13 @@ module Extras.Widget(
     , widgetExample5, widgetExample6
     ) where
 
-import Prelude
+import Internal.Prelude
+import Internal.Num
+import Internal.Event
+import Internal.Text
+import Internal.Color
+import Internal.CodeWorld
+import Internal.Picture
 
 -------------------------------------------------------------------------------
 -- $intro

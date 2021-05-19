@@ -8,8 +8,16 @@
 module Extras.Game.Hanoi (solve,move,solveWith,Move)
 where
 
-import Prelude
-import Extras.Op((<?>),(<$>))
+import Internal.Prelude
+import Internal.Num
+import Internal.CodeWorld
+import Internal.Event
+import Internal.Text
+import Internal.Picture
+import Internal.Util
+import Internal.Color
+
+import Extras.Op((<?>),(<$>),($>))
 
 -- traced(x,_) = x
 
@@ -265,7 +273,7 @@ move(i,j)(pegs) =
   else pegs
   where
   x = top i pegs
-  moveit = pegs |> push(j,x) |> pop(i)
+  moveit = pegs $> push(j,x) $> pop(i)
 
 -------------------------------------------------------------------------------
 -- Utility

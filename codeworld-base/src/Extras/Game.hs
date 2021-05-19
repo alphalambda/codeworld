@@ -8,7 +8,12 @@
 module Extras.Game
 where
 
-import Prelude
+import Internal.Prelude
+import Internal.CodeWorld
+import Internal.Event
+import Internal.Num
+import Internal.Picture
+
 import Extras.Do
 
 -------------------------------------------------------------------------------

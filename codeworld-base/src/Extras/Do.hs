@@ -15,14 +15,13 @@ where
 import qualified "base" Prelude as P
 import           "base" Prelude ((>>=),(>>),return,Maybe(..),putStrLn,($),IO)
 
-import Internal.Text(fromCWText)
-
-import Prelude hiding (Maybe(..))
+import Internal.Prelude
+import Internal.Num
+import Internal.Text
 
 import           GHCJS.DOM (currentWindow)
 import qualified GHCJS.DOM.Window as W
 
-import Internal.Text(fromCWText)
 import qualified Data.Text.Read as R
 
 import Data.Time.Clock (getCurrentTime)
