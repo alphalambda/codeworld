@@ -22,10 +22,10 @@
 -- You may use any of these functions and variables without defining them.
 module Standard (
     -- $intro
-    module Prelude
+    module Internal.Exports
     ) where
 
-import Prelude
+import Internal.Exports
 
 -------------------------------------------------------------------------------
 -- $intro

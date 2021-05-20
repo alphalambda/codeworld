@@ -49,6 +49,8 @@ module Internal.Exports (
     , sector
     , thickArc
     , lettering
+    , letteringBlock
+    , letteringBlockLengths
     , styledLettering
     , Font(..)
     , TextStyle(..)
@@ -97,33 +99,13 @@ module Internal.Exports (
     , saturation
     , luminosity
     , alpha
-    -- * Vectors
-    , Vector
-    , vectorLength
-    , vectorDirection
-    , vectorSum
-    , vectorDifference
-    , scaledVector
-    , rotatedVector
-    , dotProduct
     -- * Animations
     , Animation
     , staticMotion, repeatedMotion, delayedMotion, fasterMotion
     , transformedMotion, combinedMotions, showBetween, travelBetween
     , saw
-    -- * Control Flow
-    , cloned
-    , distributed
-    , iterated
-    , on
-    -- * Parameters
-    , newParams
-    , get
-    , set
     -- * Events
     , Event(..)
-    -- * Debugging
-    , traced
     -- * Predicates
     , Predicate, precedes, is_in, nonEmpty
     , between, above, below, exactly
@@ -134,25 +116,40 @@ module Internal.Exports (
     , logicalGroupBy, alphabeticalGroupBy, numericalGroupBy
     , alphabeticalSortedOn, numericalSortedOn
     -- * Control flow
-    , run, repeatFor, repeatWhile
+    , distributed
+    , iterated
     , foreach, forloop, whileloop
-    -- * List manipulation
-    , prepend, append, list, listn, butLast, pairs, unpairs, zipped, unzipped
-    , indexOf
-    -- * Text formatting
-    , lJustified, rJustified
-    , printedDecimals, printedNumbers, printedPoint
-    , letteringBlock, letteringBlockLengths
-    -- * Other useful functions
-    , cumulativeSums
-    , pass
-    , textHash
+    , run, repeatFor, repeatWhile
+    , on
     -- * Numbers
     , module Internal.Num
+    , cumulativeSums
     -- * Text
     , module Internal.Text
+    , lJustified, rJustified
+    , printedDecimals, printedNumbers, printedPoint
+    , textHash
     -- * General purpose functions
     , module Internal.Prelude
+    , cloned
+    , pass
+    , prepend, append, list, listn, butLast, pairs, unpairs, zipped, unzipped
+    , indexOf
+    -- * Parameters
+    , newParams
+    , get
+    , set
+    -- * Vectors
+    , Vector
+    , vectorLength
+    , vectorDirection
+    , vectorSum
+    , vectorDifference
+    , scaledVector
+    , rotatedVector
+    , dotProduct
+    -- * Debugging
+    , traced
     ) where
 
 import "base" Prelude (IO)
@@ -161,31 +158,12 @@ import qualified "base" Prelude as P
 import qualified Data.Map.Strict as M
 import qualified Data.Text as T
 
-import Internal.Num
-import Internal.Prelude
-import Internal.Text
-
-import Internal.CodeWorld
-import Internal.Color
-import Internal.Event
-import Internal.Picture
-import Internal.Util
-
-{-
-
-import "base" Prelude (IO)
-
-import Internal.Num
 import Internal.Prelude hiding (randomsFrom)
+import Internal.Num
 import Internal.Text hiding (fromCWText, toCWText)
 
-import Internal.Util
-{-
 import Internal.CodeWorld
 import Internal.Color
 import Internal.Event
 import Internal.Picture
--}
-
--}
-
+import Internal.Util

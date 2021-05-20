@@ -24,6 +24,7 @@ Library
                        -- LSU
                        Standard,
                        Standard.Debug,
+                       Standard.Pipes,
                        Lessons.Bear,
                        Lessons.Logic,
                        Lessons.Penguin,
