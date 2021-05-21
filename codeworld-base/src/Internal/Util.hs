@@ -71,6 +71,70 @@ rightPoint((x,y),n) = (x+n, y)
 upPoint :: (Point,Number) -> Point
 upPoint((x,y),n) = (x, y+n)
 
+--
+-- Polygons
+--
+
+-- | A list of the edges of the polygonal line determined
+-- by the given points. An edge is represented by a pair
+-- of points.
+polylineEdges :: [Point] -> [(Point,Point)]
+polylineEdges (p0:p1:ps) = (p0,p1) : polylineEdges (p1:ps)
+polylineEdges _ = []
+
+-- | A list of the edges of the closed polygon determined
+-- by the given points. An edge is represented by a pair
+-- of points.
+polygonEdges :: [Point] -> [(Point,Point)]
+polygonEdges [] = []
+polygonEdges(p0:ps) = go p0 ps
+    where
+    go p [] = [(p,p0)]
+    go p (p1:ps) = (p,p1) : go p1 ps
+
+edgeLength :: (Point,Point) -> Number
+edgeLength((x0,y0),(x1,y1)) = sqrt((x0-x1)^2 + (y0-y1)^2)
+
+-- | The perimeter of the polygon determined by the given points
+polygonPerimeter :: [Point] -> Number
+polygonPerimeter(pts) = go (polygonEdges pts)
+    where
+    go [] = 0
+    go (e:es) = edgeLength e + go es
+
+-- | The area of the polygon determined by the given points.
+-- If the polygon intersects itself, the area calculated by
+-- this function may not be what you expected, because there
+-- are several incompatible ways to calculate areas of
+-- self-intersecting polygons.
+polygonArea :: [Point] -> Number
+polygonArea(pts) = abs(sum(map area (polygonEdges pts))) / 2
+    where
+    area ((x0,y0),(x1,y1)) = x0*y1 - x1*y0
+
+-- | The horizontal length (width) and the vertical length (height) of
+-- the smallest rectangular box that would fit the given vertices of
+-- a polygon.
+polygonBounds :: [Point] -> (Number,Number)
+polygonBounds(pts) = go (unzipped pts)
+    where
+    go(xs,ys) = (bound xs, bound ys)
+    bound vs = maximum vs - minimum vs
+
+-- | The coordinates of the
+-- geometric center (cf. https://en.wikipedia.org/wiki/Centroid)
+-- of the given points. This function will fail if no points are given.
+polygonCenter :: [Point] -> Point
+polygonCenter [] = error "An empty polygon has no center"
+polgyonCenter(pts) = go (unzipped pts)
+    where
+    go(xs,ys) = (avg xs,avg ys)
+    avg vs = sum vs / length vs
+
+-- | The total length of the polygonal line determined by the given points.
+polylineLength :: [Point] -> Number
+polylineLength(pts) = sum(map edgeLength (polylineEdges pts))
+
 --------------------------------------------------------------------------------
 -- Animation
 --------------------------------------------------------------------------------
@@ -702,8 +766,8 @@ letteringBlock(lines) = combined([showline(i) | i <- [1..n]])
 -- | The horizontal length (width) and the vertical length (height) of
 -- the output produced by @letteringBlock@ on the same input, so that you can
 -- place it at precise locations and add snuggly fit decorations to the text.
-letteringBlockLengths :: [Text] -> (Number,Number)
-letteringBlockLengths(texts) =
+letteringBlockBounds :: [Text] -> (Number,Number)
+letteringBlockBounds(texts) =
     (maximum(P.map numberOfCharacters texts)*10/33, length(texts)/2)
 
 -------------------------------------------------------------------------------

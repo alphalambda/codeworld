@@ -50,7 +50,7 @@ module Internal.Exports (
     , thickArc
     , lettering
     , letteringBlock
-    , letteringBlockLengths
+    , letteringBlockBounds
     , styledLettering
     , Font(..)
     , TextStyle(..)
@@ -71,10 +71,17 @@ module Internal.Exports (
     , upPoint
     , rightPoint
     , rotatedPoint
-    , reflectedPoint
     , scaledPoint
     , dilatedPoint
     , translatedPoint
+    -- * Polygon properties
+    , polygonPerimeter
+    , polygonArea
+    , polygonCenter
+    , polygonEdges
+    , polygonBounds
+    , polylineLength
+    , polylineEdges
     -- * Colors
     , Color
     , colorNamed
