@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ParallelListComp #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE LambdaCase #-}
 
 -------------------------------------------------------------------------------
 -- | A set of functions and variables that provide additional support for your
@@ -125,8 +126,9 @@ polygonBounds(pts) = go (unzipped pts)
 -- geometric center (cf. https://en.wikipedia.org/wiki/Centroid)
 -- of the given points. This function will fail if no points are given.
 polygonCenter :: [Point] -> Point
-polygonCenter [] = error "An empty polygon has no center"
-polgyonCenter(pts) = go (unzipped pts)
+polygonCenter = \case
+    [] -> error "An empty polygon has no center"
+    pts -> go (unzipped pts)
     where
     go(xs,ys) = (avg xs,avg ys)
     avg vs = sum vs / length vs
@@ -759,9 +761,12 @@ letteringBlock :: [Text] -> Picture
 letteringBlock(lines) = combined([showline(i) | i <- [1..n]])
     where
     n = length(lines)
-    showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),(0,10.25-0.5*i))
     -- Output should be 40 rows and 66 columns
-    fmt(txt) = styledLettering(lJustified(txt,66),Monospace,Italic)
+    maxChars = min(66,maximum(P.map numberOfCharacters lines))
+    showline(i) = translated(scaled(fmt(lines#i),0.5,0.5),(hShift,vShift i))
+    hShift = -10+5/33*maxChars
+    vShift i = 10.25-0.5*i
+    fmt(txt) = styledLettering(lJustified(txt,maxChars),Monospace,Italic)
 
 -- | The horizontal length (width) and the vertical length (height) of
 -- the output produced by @letteringBlock@ on the same input, so that you can
