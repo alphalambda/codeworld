@@ -73,6 +73,7 @@ module CodeWorld
     (&),
     coordinatePlane,
     codeWorldLogo,
+    pictureBounds,
     Point,
     translatedPoint,
     rotatedPoint,

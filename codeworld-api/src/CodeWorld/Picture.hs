@@ -25,9 +25,166 @@ import Control.DeepSeq
 import Data.List
 import Data.Monoid ((<>))
 import Data.Text (Text)
+import qualified Data.Text as T
 import GHC.Generics (Generic)
 import GHC.Stack
 import Util.EmbedAsUrl
+
+-----------------------------------------------------------------------------
+-- Bounds and Vertices - Fernando
+-----------------------------------------------------------------------------
+
+pictureVertices :: Picture -> [Point]
+pictureVertices (SolidPolygon _ ps) = ps
+pictureVertices (SolidClosedCurve _ ps) = ps
+pictureVertices (Polygon _ ps) = ps
+pictureVertices (ThickPolygon _ ps _) = ps
+pictureVertices (Rectangle _ w h) = rectVertices (w/2) (h/2)
+pictureVertices (SolidRectangle _ w h) = rectVertices (w/2) (h/2)
+pictureVertices (ThickRectangle _ w h _) = rectVertices (w/2) (h/2)
+pictureVertices (ClosedCurve _ ps) = ps
+pictureVertices (ThickClosedCurve _ ps _) = ps
+pictureVertices (Polyline _ ps) = ps
+pictureVertices (ThickPolyline _ ps _) = ps
+pictureVertices (Curve _ ps) = ps
+pictureVertices (ThickCurve _ ps _) = ps
+pictureVertices (Circle _ r) = sectorVertices 0 (2*pi) r
+pictureVertices (SolidCircle _ r) = sectorVertices 0 (2*pi) r
+pictureVertices (ThickCircle _ r _) = sectorVertices 0 (2*pi) r
+pictureVertices (Sector _ from to r) = sectorVertices from to r
+pictureVertices (Arc _ from to r) = sectorVertices from to r
+pictureVertices (ThickArc _ from to r _) = sectorVertices from to r
+pictureVertices (StyledLettering _ _ _ txt) = textVertices txt
+pictureVertices (Lettering _ txt) = textVertices txt
+pictureVertices (Color _ _ pic) = pictureVertices pic
+pictureVertices (Translate _ x y pic) =
+    map (translatedPoint x y) $ pictureVertices pic
+pictureVertices (Scale _ x y pic) = 
+    map (scaledPoint x y) $ pictureVertices pic
+pictureVertices (Dilate _ a pic) =
+    map (dilatedPoint a) $ pictureVertices pic
+pictureVertices (Rotate _ a pic) =
+    map (rotatedPoint a) $ pictureVertices pic
+pictureVertices (Reflect _ a pic) =
+    map (reflectedPoint a) $ pictureVertices pic
+pictureVertices (Clip _ fullW fullH pic) = map clipXY $ pictureVertices pic
+    where
+    clipXY (x,y) = (clipC w x, clipC h y)
+    clipC b c = max (-b) $ min b c
+    w = fullW/2
+    h = fullH/2
+pictureVertices (CoordinatePlane _) = rectVertices 10 10
+pictureVertices (Sketch _ _ _ w h) = rectVertices (w/2) (h/2)
+pictureVertices (Pictures _ pics) =  concat $ map pictureVertices pics
+pictureVertices (PictureAnd _ pics) = concat $ map pictureVertices pics
+pictureVertices (Blank _) = []
+
+-- half width and half height
+rectVertices :: Double -> Double -> [Point]
+rectVertices w h = [(-w,-h),(w,-h),(w,h),(-w,h)]
+
+sectorVertices :: Double -> Double -> Double -> [Point]
+sectorVertices from to r = (0,0) : map rot [0..16]
+    where
+    rot i = rotatedPoint (from + i*a) (r,0)
+    a = (to - from) / 16
+
+textVertices :: Text -> [Point]
+textVertices txt = rectVertices (10/33 * fromIntegral (T.length txt)) 0.5
+
+-- | The bounds @(left,bottom,right,top)@ of a
+-- box that encloses the given picture. 
+-- 
+-- Limitations:
+-- 
+-- The bounds are exact when
+-- the picture is made of solid or outlined polygons only,
+-- but they may be only approximate in other cases.
+pictureBounds :: Picture -> (Double,Double,Double,Double)
+pictureBounds pict = (left,bottom,right,top)
+    where
+    ((left,right),(bottom,top)) = unzipWith polyBound $ pictureVertices pict
+    unzipWith f ps = (f xs,f ys) where (xs,ys) = unzip ps
+    polyBound xs = (minimum xs,maximum xs)
+
+{-
+    where
+    ((left,right),(bottom,top)) = helperBounds pict
+
+    helperBounds (SolidPolygon _ ps) = unzipWith polyBound ps
+    helperBounds (SolidClosedCurve _ ps) = unzipWith polyBound ps
+    helperBounds (Polygon _ ps) = unzipWith polyBound ps
+    helperBounds (ThickPolygon _ ps thk) =
+        thickBounds thk $ unzipWith polyBound ps
+    helperBounds (Rectangle _ w h) = rectBounds (w/2) (h/2)
+    helperBounds (SolidRectangle _ w h) = rectBounds (w/2) (h/2)
+    helperBounds (ThickRectangle _ w h t) = 
+        thickBounds t $ rectBounds (w/2) (h/2)
+    helperBounds (ClosedCurve _ ps) = unzipWith polyBound ps
+    helperBounds (ThickClosedCurve _ ps t) =
+        thickBounds t $ unzipWith polyBound ps
+    helperBounds (Polyline _ ps) = unzipWith polyBound ps
+    helperBounds (ThickPolyline _ ps t) = 
+        thickBounds t $ unzipWith polyBound ps
+    helperBounds (Curve _ ps) = unzipWith polyBound ps
+    helperBounds (ThickCurve _ ps t) = thickBounds t $ unzipWith polyBound ps
+    helperBounds (Circle _ r) = rectBounds r r
+    helperBounds (SolidCircle _ r) = rectBounds r r
+    helperBounds (ThickCircle _ r t) = thickBounds t $ rectBounds r r
+    helperBounds (Sector _ from to r) = sectorBounds from to r
+    helperBounds (Arc _ from to r) = sectorBounds from to r
+    helperBounds (ThickArc _ from to r t) = 
+        thickBounds t $ sectorBounds from to r
+    helperBounds (StyledLettering _ _ _ txt) = textBounds txt
+    helperBounds (Lettering _ txt) = textBounds txt
+    helperBounds (Color _ _ pic) = helperBounds pic
+    helperBounds (Translate _ x y pic) = 
+        transformBounds (translatedPoint x y) pic
+    helperBounds (Scale _ x y pic) = transformBounds (scaledPoint x y) pic
+    helperBounds (Dilate _ a pic) = transformBounds (dilatedPoint a) pic
+    helperBounds (Rotate _ a pic) = transformBounds (rotatedPoint a) pic
+    helperBounds (Reflect _ a pic) = transformBounds (reflectedPoint a) pic
+    helperBounds (Clip _ fullW fullH pic) =
+        ((max (-w) l,min r w),(max (-h) b,min t h))
+        where
+        ((l,r),(b,t)) = helperBounds pic
+        w = fullW/2
+        h = fullH/2
+    helperBounds (CoordinatePlane _) = ((-10,10),(-10,10))
+    helperBounds (Sketch _ _ _ w h) = rectBounds (w/2) (h/2)
+    helperBounds (Pictures _ pics) = 
+        unzipWith listBounds $ map helperBounds pics
+    helperBounds (PictureAnd _ pics) =
+        unzipWith listBounds $ map helperBounds pics
+    helperBounds (Blank _) = ((0,0),(0,0))
+
+    unzipWith f ps = (f xs,f ys) where (xs,ys) = unzip ps
+    polyBound xs = (minimum xs,maximum xs)
+
+
+    thickBounds thk ((l,r),(b,t)) = ((l-h,r+h),(b-h,t+h))
+        where h = thk / 2
+
+    -- half width and half height
+    rectBounds w h = ((-w,w),(-h,h))
+
+    textBounds txt = rectBounds (10/33 * fromIntegral (T.length txt)) 0.5
+
+    sectorBounds from to r = unzipWith polyBound [(0,0),p,q]
+        where
+        p = rotatedPoint from (r,0)
+        q = rotatedPoint to (r,0)
+
+    transformBounds trans pic = unzipWith polyBound (map trans ps)
+        where
+        ((l,r),(b,t)) = helperBounds pic
+        ps = [(l,b),(r,b),(r,t),(l,t)]
+
+    listBounds bs = (minimum mins,maximum maxs) where (mins,maxs) = unzip bs
+-}
+
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
 
 -- | A point in two dimensions.  A point is written with the x coordinate
 -- first, and the y coordinate second.  For example, (3, -2) is the point
