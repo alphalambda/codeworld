@@ -14,10 +14,12 @@
 --
 -- > import Standard.Pipes
 --
+-- If you import this module, do not import the "Standard" module
+--
 
 module Standard.Pipes(
     -- * General Pipes
-    (|>)
+     (|>)
     , apply
     , addFirst
     , addSecond
@@ -40,6 +42,7 @@ module Standard.Pipes(
     , scale
     , translate
     , upBy
+    , module Internal.Exports
     ) where
 
 import Internal.Prelude
@@ -48,6 +51,7 @@ import Internal.Num
 import Internal.Picture
 import Internal.Text
 import Internal.Color
+import Internal.Exports
 
 import qualified Data.List as L
 import qualified "base" Prelude as P
