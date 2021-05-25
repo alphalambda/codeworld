@@ -50,7 +50,6 @@ module Internal.Exports (
     , thickArc
     , lettering
     , letteringBlock
-    , letteringBlockBounds
     , styledLettering
     , Font(..)
     , TextStyle(..)
@@ -64,6 +63,9 @@ module Internal.Exports (
     , rotated
     , clipped
     , translated
+    -- * Properties of Pictures
+    , pictureBounds
+    , outputBounds
     -- * Points
     , Point
     , xCoord
@@ -79,7 +81,6 @@ module Internal.Exports (
     , polygonArea
     , polygonCenter
     , polygonEdges
-    , polygonBounds
     , polylineLength
     , polylineEdges
     -- * Colors
