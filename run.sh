@@ -20,9 +20,14 @@ source base.sh
 #run . rm -rf data/*/build
 #rm -rf $(for fn in $(find data/base -atime +20 -regex .*\\.js$ ); do dirname $fn; done)
 
+if [ "x$1" = "x-c" ]; then
+	run . rm -rf data/base/* data/codeworld/build/*
+	echo "Cleaned and exited"
+	exit 0
+fi
+
 fuser -k -n tcp 8080
 fuser -k -n tcp 9160
-
 sleep 2
 
 # Run migration of project directory structure for codeworld-server.

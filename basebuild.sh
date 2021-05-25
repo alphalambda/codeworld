@@ -4,6 +4,7 @@ cwd=$(pwd)
 
 source base.sh
 
+#run .  cabal_install --ghcjs ./codeworld-api
 run .  cabal_install --ghcjs ./codeworld-base
 
 run codeworld-base  cabal configure --ghcjs
