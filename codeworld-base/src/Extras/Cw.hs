@@ -518,9 +518,14 @@ squareFrame(border) = colored(thickRectangle(s,s,border),RGB(1,1,1))
 -- 'guiDrawingOf' from "Extras.Widget".
 --
 graphed :: (Picture,Number,Number) -> Picture
-graphed(pic,zoomx,zoomy) =
-    combined([ graph(10/zoomx,10/zoomy,10,10),
-               scaled(pic,zoomx,zoomy) ])
+graphed(pic,zoomx,zoomy) = combined
+    [ graph(sizex,sizey,factorx,factory),
+      scaled(pic,zoomx,zoomy) ]
+    where
+    (sizex,factorx) = adjust zoomx
+    (sizey,factory) = adjust zoomy
+    adjust zoom | zoom >= 1 = (10,10*zoom)
+                | otherwise = (10/zoom,10)
 
 -- | This function is similar to 'graphed', but it creates a graph that is
 -- as wide as specified by the first parameter.
