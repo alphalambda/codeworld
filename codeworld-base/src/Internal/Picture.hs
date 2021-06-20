@@ -38,7 +38,7 @@ pictureBounds pic = (fromCWPoint (l,b), fromCWPoint (r,t))
 -- | The coordinates of the bottom-left and the top-right corners of
 -- the output window.
 outputBounds :: (Point,Point)
-outputBounds = ((-10,10),(-10,10))
+outputBounds = ((-10,-10),(10,10))
 
 -- | A point in two dimensions.  A point is written with the x coordinate
 -- first and the y coordinate second.  For example, (3, -2) is the point

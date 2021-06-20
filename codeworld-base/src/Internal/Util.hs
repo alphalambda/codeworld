@@ -137,6 +137,36 @@ polygonCenter = \case
 polylineLength :: [Point] -> Number
 polylineLength(pts) = sum(map edgeLength (polylineEdges pts))
 
+-- | A list of triples where each vertex of a polygon is listed along with the
+-- preceding and the succeeding vertex. The order of vertices in each triple is
+-- @(preceeding,current,succeeding)@.
+polygonCorners :: [Point] -> [(Point,Point,Point)]
+polygonCorners([]) = []
+polygonCorners(points) = plast : pother
+  where
+  (plast,pother) = recycle(points)(corners)
+  corners = go(repeating(points))
+  go(a:b:c:ps) = (a,b,c) : go(b:c:ps)
+  recycle([p])(c:cs) = (c,[])
+  recycle(p:ps)(c:cs) = (c',c:cs')
+    where
+    (c',cs') = recycle(ps)(cs)
+
+-- | This function takes a list of corners, as calculated by 'polygonCorners',
+-- and returns the angles for an arc that spans the corresponding
+-- vertex. If the list of corners is given so that the interior of the polygon
+-- is at the left when traversing it, then the arcs will correspond to the
+-- interior angles of the polygon.
+cornerAngles :: (Point,Point,Point) -> (Number,Number)
+cornerAngles(a,b,c) = corner(ediff(a,b),ediff(b,c))
+  where
+  ediff(p,q) = vectorDifference(q,p)
+  corner(ein,eout) = diff(vectorDirection(ein),vectorDirection(eout))
+  diff(a,b) = step2(step1(a,b))
+    where
+    step1(a,b) = if b < a then (a,b+360) else (a,b)
+    step2(a,b) = if b - a < 180 then (b,a+180) else (b-360,a+180)
+
 --------------------------------------------------------------------------------
 -- Animation
 --------------------------------------------------------------------------------

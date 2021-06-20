@@ -83,6 +83,8 @@ module Internal.Exports (
     , polygonEdges
     , polylineLength
     , polylineEdges
+    , polygonCorners
+    , cornerAngles
     -- * Colors
     , Color
     , colorNamed
