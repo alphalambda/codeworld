@@ -1314,6 +1314,7 @@ function parseCompileErrors(rawErrors) {
 function editorHelp(doc) {
     let helpText =
         "<div id='keyboard-shortcuts'><table><tbody>" +
+        "<tr><td>Ctrl + Enter</td><td> Run the code </td></tr>" +
         "<tr><td>Ctrl + Up </td><td> Zoom In </td></tr>" +
         "<tr><td>Ctrl + Down </td><td>  Zoom Out </td></tr>" +
         "<tr><td>Ctrl + A </td><td>  Select All </td></tr>" +
