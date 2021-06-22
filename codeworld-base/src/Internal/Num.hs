@@ -30,6 +30,7 @@ module Internal.Num
     , (>=)
     , (<)
     , (<=)
+    , (=~)
     , max
     , min
     , negate
@@ -171,6 +172,13 @@ infixl 7 *, /
 infixl 6 +, -
 
 infix 4 <, <=, >=, >
+
+{-| 'True' if the two 'Number's are
+equal up to 10 decimal places. 'False' otherwise. -}
+(=~) :: Number -> Number -> Truth
+a =~ b = abs (a - b) < 1e-10
+
+infix 4 =~
 
 {-| Adds two numbers. -}
 (+) :: Number -> Number -> Number
