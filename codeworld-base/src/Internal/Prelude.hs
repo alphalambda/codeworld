@@ -61,6 +61,7 @@ module Internal.Prelude
     , concatenated
     , L.subsequences
     , L.permutations
+    , range
     , sorted
     , reversed
     , unique
@@ -255,6 +256,15 @@ after (xs, p) = P.dropWhile p xs
 -- | Gives the concatenation of all of the lists in its input.
 concatenated :: [[a]] -> [a]
 concatenated = P.concat
+
+-- | @range(from,to)@ is a list of integers that increase between @from@ and
+-- @to@, both included. If @from@ is greater than @to@, the list is empty.
+-- Arguments with decimals are truncated.
+range :: (Number,Number) -> [Number]
+range(from,to) = [a..b]
+    where
+    a = truncated(from)
+    b = truncated(to)
 
 -- | Gives a list of numbers reordered into increasing order.
 sorted :: [Number] -> [Number]
