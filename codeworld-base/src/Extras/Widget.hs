@@ -688,7 +688,30 @@ updateWidget(PointerRelease(mx,my))(w@Widget{..})
 updateWidget(TimePassing(dt))(w@Widget{..})
   | widget == Timer, isSelected = w { oldval = value_ , value_ = dt + value_ }
   | otherwise = w
-  
+
+updateWidget(KeyPress key)(w@Widget{..})
+  | highlight,
+    key == "Left" || key == "A",
+    widget == Slider  = w { oldval = value_ 
+                          , value_ = max(value_ - 0.001,0) }
+
+updateWidget(KeyPress key)(w@Widget{..})
+  | highlight,
+    key == "Right" || key == "D",
+    widget == Slider  = w { oldval = value_ 
+                          , value_ = min(value_ + 0.001,1) }
+
+updateWidget(KeyPress key)(w@Widget{..})
+  | highlight,
+    key == "Up" || key == "W",
+    widget == Slider  = w { oldval = value_ 
+                          , value_ = min(value_ + 0.01,1) }
+
+updateWidget(KeyPress key)(w@Widget{..})
+  | highlight,
+    key == "Down" || key == "S",
+    widget == Slider  = w { oldval = value_ 
+                          , value_ = min(value_ - 0.01,1) }
 updateWidget(_)(widget) = widget
 
 updateHighlight(mx,my)(w)
